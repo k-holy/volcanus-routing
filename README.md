@@ -1,11 +1,11 @@
-#Volcanus_Router
+#Volcanus_Routing
 
 ページコントローラ(PageController)パターンで「きれいなURI」を実現するためのライブラリです。
 
 フロントコントローラ(FrontController)パターンにおいてRouterと呼ばれるクラスは、
 リクエストURIを解析して特定のクラスに振り分ける役目を担います。
 
-ページコントローラパターンでの利用を想定したVolcanus_Routerのルーティングでは、
+ページコントローラパターンでの利用を想定したVolcanus_Routingでは、
 リクエストURIを解析して特定のディレクトリにあるスクリプトファイルを読み込み、
 カレントディレクトリを移動します。
 
