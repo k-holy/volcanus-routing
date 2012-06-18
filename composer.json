@@ -1,0 +1,22 @@
+{
+    "name": "volcanus/routing",
+    "type": "library",
+    "description": "request-URI routing for page-controller scripts.",
+    "keywords": [],
+    "homepage": "https://github.com/k-holy/Volcanus_Routing",
+    "version": "0.1.0",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "k-holy",
+            "email": "k.holy74@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3"
+    },
+    "autoload": {
+        "psr-0": { "Volcanus\Routing": "" }
+    },
+    "target-dir": "Volcanus/Routing"
+}
