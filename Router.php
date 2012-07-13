@@ -92,7 +92,7 @@ class Router
 		$this->configurations = array(
 			'parameterDirectoryName' => '%VAR%',
 			'searchExtensions'       => 'php',
-			'overwriteGrobals'       => true,
+			'overwriteGlobals'       => true,
 		);
 		$this->serverVariables = array();
 		$this->parameters = array();
@@ -214,7 +214,7 @@ class Router
 	 *
 	 * @return object Router
 	 */
-	public function importGrobals()
+	public function importGlobals()
 	{
 		if (isset($_SERVER)) {
 			foreach ($_SERVER as $name => $value) {
@@ -440,7 +440,7 @@ class Router
 	/**
 	 * ルーティングを実行します。
 	 * カレントディレクトリを移動し、対象のスクリプトを読み込みます。
-	 * overwriteGrobalsオプションが有効な場合、$_SERVERグローバル変数を
+	 * overwriteGlobalsオプションが有効な場合、$_SERVERグローバル変数を
 	 * serverVariablesプロパティの値で上書きします。
 	 *
 	 * @param string requestURI
@@ -451,8 +451,8 @@ class Router
 		if (!$this->prepared) {
 			$this->prepare($requestUri);
 		}
-		if ($this->getConfiguration('overwriteGrobals')) {
-			$this->overwriteGrobals();
+		if ($this->getConfiguration('overwriteGlobals')) {
+			$this->overwriteGlobals();
 		}
 		if (isset($this->translateDirectory)) {
 			chdir($this->translateDirectory);
@@ -602,7 +602,7 @@ class Router
 	 *
 	 * @return object Router
 	 */
-	private function overwriteGrobals()
+	private function overwriteGlobals()
 	{
 		if (isset($_SERVER)) {
 			foreach ($this->serverVariables as $name => $value) {

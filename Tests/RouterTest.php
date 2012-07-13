@@ -41,7 +41,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router = new Router(array(
 			'parameterDirectoryName' => '__VAR__',
 			'searchExtensions'       => 'php,html',
-			'overwriteGrobals'       => false,
+			'overwriteGlobals'       => false,
 		));
 		$this->router->initialize();
 		$this->assertEquals($default_config, $this->router->configurations());
@@ -62,7 +62,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	{
 		$this->assertEquals('%VAR%', $this->router->config('parameterDirectoryName'));
 		$this->assertEquals('php'  , $this->router->config('searchExtensions'));
-		$this->assertTrue($this->router->config('overwriteGrobals'));
+		$this->assertTrue($this->router->config('overwriteGlobals'));
 	}
 
 	/**
@@ -78,11 +78,11 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router = new Router(array(
 			'parameterDirectoryName' => '__VAR__',
 			'searchExtensions'       => 'php,html',
-			'overwriteGrobals'       => false,
+			'overwriteGlobals'       => false,
 		));
 		$this->assertEquals('__VAR__' , $this->router->config('parameterDirectoryName'));
 		$this->assertEquals('php,html', $this->router->config('searchExtensions'));
-		$this->assertFalse($this->router->config('overwriteGrobals'));
+		$this->assertFalse($this->router->config('overwriteGlobals'));
 	}
 
 	public function testSetRequestUri()
@@ -119,7 +119,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router->server('REQUEST_URI', array());
 	}
 
-	public function testImportGrobals()
+	public function testImportGlobals()
 	{
 		$_SERVER['DOCUMENT_ROOT'  ] = '/path/to/document/root';
 		$_SERVER['REQUEST_URI'    ] = '/request/uri.php/foo/bar';
@@ -128,7 +128,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$_SERVER['PHP_SELF'       ] = '/request/uri.php/foo/bar';
 		$_SERVER['SCRIPT_NAME'    ] = '/request/uri.php';
 		$_SERVER['SCRIPT_FILENAME'] = '/path/to/document/root/request/uri.php';
-		$this->router->importGrobals();
+		$this->router->importGlobals();
 		$this->assertEquals($_SERVER['DOCUMENT_ROOT'  ], $this->router->server('DOCUMENT_ROOT'));
 		$this->assertEquals($_SERVER['REQUEST_URI'    ], $this->router->server('REQUEST_URI'));
 		$this->assertEquals($_SERVER['PATH_INFO'      ], $this->router->server('PATH_INFO'));
@@ -349,11 +349,11 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals($this->router->parameter(0), '1');
 	}
 
-	public function testOverwriteGrobals()
+	public function testOverwriteGlobals()
 	{
 		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$this->router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
-		$this->router->config('overwriteGrobals', true);
+		$this->router->config('overwriteGlobals', true);
 		$this->router->prepare();
 		$this->router->execute();
 		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/modify.php/foo/bar');
@@ -368,11 +368,11 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals($_SERVER['PATH_TRANSLATED'], $this->router->server('PATH_TRANSLATED'));
 	}
 
-	public function testNotOverwriteGrobals()
+	public function testNotOverwriteGlobals()
 	{
 		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$this->router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
-		$this->router->config('overwriteGrobals', false);
+		$this->router->config('overwriteGlobals', false);
 		$this->router->prepare();
 		$this->router->execute();
 		$this->assertNotEquals($_SERVER['PHP_SELF'       ], $this->router->server('PHP_SELF'       ));

@@ -35,9 +35,9 @@
 	$router = Router::instance(array(
 		'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
 		'searchExtensions'       => 'php',   // 読み込み対象スクリプトの拡張子を php と設定する
-		'overwriteGrobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
+		'overwriteGlobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
 	));
-	$router->importGrobals(); // $_SERVERグローバル変数から環境変数を取り込む
+	$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 	try {
 		$router->prepare();
 	} catch (NotFoundException $e) {
@@ -54,7 +54,7 @@
 Volcanus\Routing\Exception\NotFoundException 例外がスローされますので、
 これをキャッチしてステータス 404 を返すことができます。
 
-ルーティング実行時には、overwriteGrobals オプションを true に設定しているため、 
+ルーティング実行時には、overwriteGlobals オプションを true に設定しているため、 
 $_SERVERグローバル変数のうち PHP_SELF, SCRIPT_NAME, SCRIPT_FILENAME, PATH_INFO, PATH_TRANSLATED が、
 ルーティング結果に従って書き換えられます。
 
