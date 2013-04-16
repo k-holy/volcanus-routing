@@ -1,0 +1,63 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
+    ],
+    "hash": "793550bb2e034a91b0c1f08dd0cbe4e9",
+    "packages": [
+        {
+            "name": "volcanus/configuration",
+            "version": "dev-master",
+            "target-dir": "Volcanus/Configuration",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/k-holy/Volcanus_Configuration.git",
+                "reference": "c6bc8853ab093ecfc89738e8d4b81a7229f74aff"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/k-holy/Volcanus_Configuration/zipball/c6bc8853ab093ecfc89738e8d4b81a7229f74aff",
+                "reference": "c6bc8853ab093ecfc89738e8d4b81a7229f74aff",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Volcanus\\Configuration": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "k-holy",
+                    "email": "k.holy74@gmail.com"
+                }
+            ],
+            "description": "Array class for configurations",
+            "homepage": "https://github.com/k-holy/Volcanus_Configuration",
+            "time": "2013-01-21 07:23:07"
+        }
+    ],
+    "packages-dev": [
+
+    ],
+    "aliases": [
+
+    ],
+    "minimum-stability": "stable",
+    "stability-flags": {
+        "volcanus/configuration": 20
+    },
+    "platform": {
+        "php": ">=5.3"
+    },
+    "platform-dev": [
+
+    ]
+}

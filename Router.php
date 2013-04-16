@@ -2,12 +2,13 @@
 /**
  * Volcanus libraries for PHP
  *
- * @copyright 2012 k-holy <k.holy74@gmail.com>
+ * @copyright 2011-2013 k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
  */
 namespace Volcanus\Routing;
 
 use Volcanus\Routing\Exception\NotFoundException;
+use Volcanus\Configuration\Configuration;
 
 /**
  * Router
@@ -17,6 +18,16 @@ use Volcanus\Routing\Exception\NotFoundException;
  */
 class Router
 {
+
+	/**
+	 * @const ディレクトリ区切り文字
+	 */
+	const DS = '/';
+
+	/**
+	 * @const URLパス区切り文字
+	 */
+	const PS = '/';
 
 	/**
 	 * @var Router Singletonインスタンス
@@ -42,17 +53,17 @@ class Router
 	);
 
 	/**
-	 * @var array 設定
+	 * @var Configuration 設定値のコレクション
 	 */
-	private $configurations;
+	private $config;
 
 	/**
-	 * @var array 環境変数
+	 * @var Configuration 環境変数のコレクション
 	 */
-	private $serverVariables;
+	private $server;
 
 	/**
-	 * @var array パラメータ
+	 * @var array ディレクトリパラメータ
 	 */
 	private $parameters;
 
@@ -82,28 +93,39 @@ class Router
 	private $prepared;
 
 	/**
-	 * インスタンスのプロパティを初期化します。
+	 * constructor
 	 *
-	 * @param array デフォルトの設定
-	 * @return $this
+	 * @param array 設定オプション
+	 */
+	public function __construct(array $configurations = array())
+	{
+		$this->initialize($configurations);
+	}
+
+	/**
+	 * オブジェクトを初期化します。
+	 *
+	 * @param array 設定オプション
 	 */
 	public function initialize(array $configurations = array())
 	{
-		$this->configurations = array(
+		$this->config = new Configuration(array(
 			'parameterDirectoryName' => '%VAR%',
 			'searchExtensions'       => 'php',
 			'overwriteGlobals'       => true,
+		));
+		if (!empty($configurations)) {
+			$this->config->attributes($configurations);
+		}
+		$this->server = new Configuration(
+			array_fill_keys(self::$acceptServerVars, null)
 		);
-		$this->serverVariables = array();
 		$this->parameters = array();
 		$this->translateDirectory = null;
 		$this->includeFile = null;
 		$this->virtualUri = null;
 		$this->extension = null;
 		$this->prepared = false;
-		if (!empty($configurations)) {
-			$this->configurations($configurations);
-		}
 		return $this;
 	}
 
@@ -121,17 +143,6 @@ class Router
 			self::$instance->initialize($configurations);
 		}
 		return self::$instance;
-	}
-
-	/**
-	 * コンストラクタ
-	 * デフォルトの設定が指定されていればセットします。
-	 *
-	 * @param array デフォルトの設定
-	 */
-	public function __construct(array $configurations = array())
-	{
-		$this->initialize($configurations);
 	}
 
 	/**
@@ -154,16 +165,14 @@ class Router
 	{
 		switch (func_num_args()) {
 		case 0:
-			return $this->configurations;
+			return $this->config->toArray();
 		case 1:
 			$configurations = func_get_arg(0);
 			if (!is_array($configurations)) {
 				throw new \InvalidArgumentException(
 					'The configurations is not Array.');
 			}
-			foreach ($configurations as $name => $value) {
-				$this->configurations[$name] = $value;
-			}
+			$this->config->attributes($configurations);
 			return $this;
 		}
 		throw new \InvalidArgumentException('Invalid arguments count.');
@@ -173,6 +182,10 @@ class Router
 	 * 引数1つの場合は指定された設定の値を返します。
 	 * 引数2つの場合は指定された設置の値をセットして$thisを返します。
 	 *
+	 * string parameterDirectoryName : パラメータディレクトリ名
+	 * string searchExtensions       : ルーティングによる読み込み対象ファイルの拡張子
+	 * bool   overwriteGlobals       : $_SERVER グローバル変数をフィールドに含まれる囲み文字のエスケープ文字 ※1文字のみ対応
+	 *
 	 * @param string 設定名
 	 * @return mixed 設定値 または $this
 	 * @throws \InvalidArgumentException
@@ -181,9 +194,30 @@ class Router
 	{
 		switch (func_num_args()) {
 		case 1:
-			return $this->getConfiguration($name);
+			return $this->config->get($name);
 		case 2:
-			$this->setConfiguration($name, func_get_arg(1));
+			$value = func_get_arg(1);
+			if (isset($value)) {
+				switch ($name) {
+				case 'parameterDirectoryName':
+				case 'searchExtensions':
+					if (!is_string($value)) {
+						throw new \InvalidArgumentException(
+							sprintf('The config parameter "%s" only accepts string.', $name));
+					}
+					break;
+				case 'overwriteGlobals':
+					if (is_int($value) || ctype_digit($value)) {
+						$value = (bool)$value;
+					}
+					if (!is_bool($value)) {
+						throw new \InvalidArgumentException(
+							sprintf('The config parameter "%s" only accepts boolean.', $name));
+					}
+					break;
+				}
+				$this->config->set($name, $value);
+			}
 			return $this;
 		}
 		throw new \InvalidArgumentException('Invalid arguments count.');
@@ -193,17 +227,44 @@ class Router
 	 * 引数1つの場合は指定された環境変数の値を返します。
 	 * 引数2つの場合は指定された環境変数の値をセットして$thisを返します。
 	 *
-	 * @param string 環境変数のキー
-	 * @return mixed 環境変数の値 または $this
+	 * REQUEST_URIが不正な場合は値を受け付けず例外をスローします。
+	 * DOCUMENT_ROOTは値に含まれるディレクトリ区切り文字を / に統一します。
+	 *
+	 * @param string 環境変数名
+	 * @return mixed 環境変数値 または $this
 	 * @throws \InvalidArgumentException
 	 */
 	public function server($name)
 	{
 		switch (func_num_args()) {
 		case 1:
-			return $this->getServerVariable($name);
+			return $this->server->get($name);
 		case 2:
-			$this->setServerVariable($name, func_get_arg(1));
+			$value = func_get_arg(1);
+			if (isset($value)) {
+				if (!in_array($name, self::$acceptServerVars)) {
+					throw new \InvalidArgumentException(
+						sprintf('The server vars "%s" could not accept.', $name));
+				}
+				if (!is_string($value)) {
+					throw new \InvalidArgumentException(
+						sprintf('The server vars "%s" is not string.', $name));
+				}
+				switch ($name) {
+				case 'REQUEST_URI':
+					if (!preg_match(self::$requestUriPattern, $value, $matches)) {
+						throw new \InvalidArgumentException(
+							sprintf('The server vars "%s" is not valid. "%s"', $name, $value));
+					}
+					break;
+				case 'DOCUMENT_ROOT':
+					if (DIRECTORY_SEPARATOR !== self::DS) {
+						$value = str_replace(DIRECTORY_SEPARATOR, self::DS, $value);
+					}
+					break;
+				}
+				$this->server->set($name, $value);
+			}
 			return $this;
 		}
 		throw new \InvalidArgumentException('Invalid arguments count.');
@@ -219,7 +280,7 @@ class Router
 		if (isset($_SERVER)) {
 			foreach ($_SERVER as $name => $value) {
 				if (in_array($name, self::$acceptServerVars)) {
-					$this->setServerVariable($name, $value);
+					$this->server($name, $value);
 				}
 			}
 		}
@@ -302,15 +363,15 @@ class Router
 	public function prepare($requestUri = null)
 	{
 		if (isset($requestUri)) {
-			$this->setServerVariable('REQUEST_URI', $requestUri);
+			$this->server('REQUEST_URI', $requestUri);
 		}
 
-		$requestUri = $this->getServerVariable('REQUEST_URI');
+		$requestUri = $this->server('REQUEST_URI');
 		if (!isset($requestUri)) {
 			throw new \RuntimeException('RequestUri is not set.');
 		}
 
-		$documentRoot = $this->getServerVariable('DOCUMENT_ROOT');
+		$documentRoot = $this->server('DOCUMENT_ROOT');
 		if (!isset($documentRoot)) {
 			throw new \RuntimeException('DocumentRoot is not set.');
 		}
@@ -321,8 +382,8 @@ class Router
 		$queryString = (isset($matches[2])) ? $matches[2] : '';
 		$fragment    = (isset($matches[3])) ? $matches[3] : '';
 
-		$parameterDirectoryName = $this->getConfiguration('parameterDirectoryName');
-		$searchExtensions = $this->getConfiguration('searchExtensions');
+		$parameterDirectoryName = $this->config('parameterDirectoryName');
+		$searchExtensions = $this->config('searchExtensions');
 		if (is_string($searchExtensions)) {
 			$searchExtensions = explode(',', $searchExtensions);
 		}
@@ -340,7 +401,7 @@ class Router
 			if ($pos !== false) {
 				$filename = $this->findFile($documentRoot . $translateDirectory, $segment);
 				if (isset($filename)) {
-					$scriptName .= '/' . $filename;
+					$scriptName .= self::DS . $filename;
 					$fileSegmentIndex = $index;
 					break;
 				}
@@ -352,37 +413,37 @@ class Router
 					$filename = $this->findFile($documentRoot . $translateDirectory,
 						$basename, $searchExtensions);
 					if (isset($filename)) {
-						$scriptName .= '/' . $filename;
+						$scriptName .= self::DS . $filename;
 						$fileSegmentIndex = $index;
 						$this->extension = $extension;
 						break;
 					}
 				}
 			}
-			if (is_dir($documentRoot . $translateDirectory . '/' . $segment)) {
-				$scriptName .= '/' . $segment;
-				$translateDirectory .= '/' . $segment;
+			if (is_dir($documentRoot . $translateDirectory . self::DS . $segment)) {
+				$scriptName .= self::DS . $segment;
+				$translateDirectory .= self::DS . $segment;
 				continue;
 			}
 			$filename = $this->findFile($documentRoot . $translateDirectory,
 				$segment, $searchExtensions);
 			if (isset($filename)) {
-				$scriptName .= '/' . $filename;
+				$scriptName .= self::DS . $filename;
 				$fileSegmentIndex = $index;
 				break;
 			}
-			if (is_dir($documentRoot . $translateDirectory . '/' .
+			if (is_dir($documentRoot . $translateDirectory . self::DS .
 				$parameterDirectoryName)
 			) {
-				$translateDirectory .= '/' . $parameterDirectoryName;
-				$scriptName .= '/' . $segment;
+				$translateDirectory .= self::DS . $parameterDirectoryName;
+				$scriptName .= self::DS . $segment;
 				$this->parameters[] = $segment;
 				continue;
 			}
 			throw new NotFoundException(
 				sprintf('The file that corresponds to the segment of Uri\'s path "%s" is not found in requestPath "%s".', $segment, $requestPath));
 		}
-		$translateDirectory = rtrim($translateDirectory, '/');
+		$translateDirectory = rtrim($translateDirectory, self::DS);
 
 		if (!isset($filename)) {
 			$filename = $this->findFile($documentRoot . $translateDirectory,
@@ -390,7 +451,7 @@ class Router
 			if (isset($filename)) {
 				$fileSegmentIndex = $segmentCount - 1;
 				if (isset($segments[$fileSegmentIndex]) && strcmp($segments[$fileSegmentIndex], '') !== 0) {
-					$scriptName .= '/' . $filename;
+					$scriptName .= self::DS . $filename;
 				} else {
 					$scriptName .= $filename;
 				}
@@ -402,22 +463,22 @@ class Router
 				sprintf('The file that corresponds to the Uri\'s path "%s" is not found.', $requestPath));
 		}
 
-		$includeFile = $translateDirectory . '/' . $filename;
+		$includeFile = $translateDirectory . self::DS . $filename;
 
 		// @see RFC 3875 Section 4.1. Request Meta-Variables
 		$pathInfo = '';
 		for ($i = $fileSegmentIndex + 1; $i < $segmentCount; $i++) {
-			$pathInfo .= '/' . $segments[$i];
+			$pathInfo .= self::PS . $segments[$i];
 		}
 		if (strlen($pathInfo) >= 1) {
-			$this->serverVariables['PATH_INFO'      ] = $pathInfo;
-			$this->serverVariables['PATH_TRANSLATED'] = $documentRoot . $pathInfo;
+			$this->server('PATH_INFO'      , $pathInfo);
+			$this->server('PATH_TRANSLATED', $documentRoot . $pathInfo);
 		}
 
 		if (strlen($scriptName) >= 1) {
-			$this->serverVariables['SCRIPT_NAME'    ] = $scriptName;
-			$this->serverVariables['PHP_SELF'       ] = $scriptName . $pathInfo;
-			$this->serverVariables['SCRIPT_FILENAME'] = $documentRoot . $scriptName;
+			$this->server('SCRIPT_NAME'    , $scriptName);
+			$this->server('PHP_SELF'       , $scriptName . $pathInfo);
+			$this->server('SCRIPT_FILENAME', $documentRoot . $scriptName);
 		}
 
 		$this->translateDirectory = $documentRoot . $translateDirectory;
@@ -439,112 +500,25 @@ class Router
 
 	/**
 	 * ルーティングを実行します。
-	 * カレントディレクトリを移動し、対象のスクリプトを読み込みます。
+	 * カレントディレクトリを移動し、対象のスクリプトを返します。
 	 * overwriteGlobalsオプションが有効な場合、$_SERVERグローバル変数を
-	 * serverVariablesプロパティの値で上書きします。
+	 * serverの値で上書きします。
 	 *
 	 * @param string requestURI
-	 * @return object Router
+	 * @return string Router
 	 */
 	public function execute($requestUri = null)
 	{
 		if (!$this->prepared) {
 			$this->prepare($requestUri);
 		}
-		if ($this->getConfiguration('overwriteGlobals')) {
+		if ($this->config('overwriteGlobals')) {
 			$this->overwriteGlobals();
 		}
 		if (isset($this->translateDirectory)) {
 			chdir($this->translateDirectory);
 		}
 		include $this->includeFile;
-	}
-
-	/**
-	 * 指定された設定の値をセットします。
-	 *
-	 * @param string 設定名
-	 * @param mixed 設定値
-	 * @return object Router
-	 * @throws \InvalidArgumentException
-	 */
-	private function setConfiguration($name, $value)
-	{
-		if (!array_key_exists($name, $this->configurations)) {
-			throw new \InvalidArgumentException(
-				sprintf('The configuration "%s" does not exists.', $name));
-		}
-		$this->configurations[$name] = $value;
-		return $this;
-	}
-
-	/**
-	 * 指定された設定の値を返します。
-	 *
-	 * @param string 設定名
-	 * @return mixed 設定値
-	 * @throws \InvalidArgumentException
-	 */
-	private function getConfiguration($name)
-	{
-		if (!array_key_exists($name, $this->configurations)) {
-			throw new \InvalidArgumentException(
-				sprintf('The configuration "%s" does not exists.', $name));
-		}
-		return $this->configurations[$name];
-	}
-
-	/**
-	 * 指定された環境変数の値をセットします。
-	 * REQUEST_URIが不正な場合は値を受け付けず例外をスローします。
-	 * DOCUMENT_ROOTは値に含まれるディレクトリ区切り文字を / に統一します。
-	 *
-	 * @param string 環境変数のキー
-	 * @param mixed 環境変数の値
-	 * @return object Router
-	 * @throws \InvalidArgumentException
-	 */
-	private function setServerVariable($name, $value)
-	{
-		if (!in_array($name, self::$acceptServerVars)) {
-			throw new \InvalidArgumentException(
-				sprintf('The serverVariables "%s" could not accept.', $name));
-		}
-		if (isset($value)) {
-			if (!is_string($value)) {
-				throw new \InvalidArgumentException(
-					sprintf('The serverVariables "%s" is not string.', $name));
-			}
-			switch ($name) {
-			case 'REQUEST_URI':
-				if (!preg_match(self::$requestUriPattern, $value, $matches)) {
-					throw new \InvalidArgumentException(
-						sprintf('The serverVariables "%s" is not valid. "%s"', $name, $value));
-				}
-				break;
-			case 'DOCUMENT_ROOT':
-				if (DIRECTORY_SEPARATOR !== '/') {
-					$value = str_replace(DIRECTORY_SEPARATOR, '/', $value);
-				}
-				break;
-			}
-		}
-		$this->serverVariables[$name] = $value;
-		return $this;
-	}
-
-	/**
-	 * 指定された環境変数の値を返します。
-	 *
-	 * @param string 環境変数のキー
-	 * @return mixed 環境変数の値
-	 */
-	private function getServerVariable($name)
-	{
-		if (array_key_exists($name, $this->serverVariables)) {
-			return $this->serverVariables[$name];
-		}
-		return null;
 	}
 
 	/**
@@ -557,7 +531,7 @@ class Router
 	{
 		$segments = array();
 		$count = 0;
-		foreach (explode('/', $requestPath) as $segment) {
+		foreach (explode(self::PS, $requestPath) as $segment) {
 			if (strcmp($segment, '.') === 0) {
 				continue;
 			}
@@ -586,14 +560,14 @@ class Router
 	private function findFile($dir, $filename, $extensions = array())
 	{
 		if (!empty($extensions)) {
-			foreach ($extensions as $ext) {
-				$path = $dir . '/' . $filename . '.'. $ext;
+			foreach ($extensions as $extension) {
+				$path = $dir . self::DS . $filename . '.'. $extension;
 				if (file_exists($path) && is_file($path)) {
-					return $filename . '.' . $ext;
+					return $filename . '.' . $extension;
 				}
 			}
 		}
-		$path = $dir . '/' . $filename;
+		$path = $dir . self::DS . $filename;
 		return (file_exists($path) && is_file($path)) ? $filename : null;
 	}
 
@@ -605,7 +579,7 @@ class Router
 	private function overwriteGlobals()
 	{
 		if (isset($_SERVER)) {
-			foreach ($this->serverVariables as $name => $value) {
+			foreach ($this->server as $name => $value) {
 				$_SERVER[$name] = $value;
 			}
 		}

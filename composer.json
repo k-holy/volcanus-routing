@@ -13,7 +13,8 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3"
+        "php": ">=5.3",
+        "volcanus/configuration": "dev-master"
     },
     "autoload": {
         "psr-0": { "Volcanus\\Routing": "" }

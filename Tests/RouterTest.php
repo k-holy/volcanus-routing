@@ -2,7 +2,7 @@
 /**
  * Volcanus libraries for PHP
  *
- * @copyright 2012 k-holy <k.holy74@gmail.com>
+ * @copyright 2011-2013 k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
  */
 namespace Volcanus\Routing;
@@ -354,6 +354,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$this->router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
 		$this->router->config('overwriteGlobals', true);
+		$_SERVER = array();
 		$this->router->prepare();
 		$this->router->execute();
 		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/modify.php/foo/bar');
@@ -373,11 +374,12 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$this->router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
 		$this->router->config('overwriteGlobals', false);
+		$_SERVER = array();
 		$this->router->prepare();
 		$this->router->execute();
-		$this->assertNotEquals($_SERVER['PHP_SELF'       ], $this->router->server('PHP_SELF'       ));
-		$this->assertNotEquals($_SERVER['SCRIPT_NAME'    ], $this->router->server('SCRIPT_NAME'    ));
-		$this->assertNotEquals($_SERVER['SCRIPT_FILENAME'], $this->router->server('SCRIPT_FILENAME'));
+		$this->assertArrayNotHasKey('PHP_SELF'       , $_SERVER);
+		$this->assertArrayNotHasKey('SCRIPT_NAME'    , $_SERVER);
+		$this->assertArrayNotHasKey('SCRIPT_FILENAME', $_SERVER);
 	}
 
 	public function testScriptPlacedDirectlyUnderOfDocumentRootCanBeInclude()
