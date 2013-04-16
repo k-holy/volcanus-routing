@@ -8,8 +8,6 @@
 namespace Volcanus\Routing;
 
 use Volcanus\Routing\Exception\NotFoundException;
-use Volcanus\Routing\Exception\InvalidParameterException;
-
 use Volcanus\Configuration\Configuration;
 
 /**
@@ -112,12 +110,9 @@ class Router
 	public function initialize(array $configurations = array())
 	{
 		$this->config = new Configuration(array(
-			'parameterDirectoryName'  => '%VAR%',
-			'searchExtensions'        => 'php',
-			'overwriteGlobals'        => true,
-			'parameterLeftDelimiter'  => null,
-			'parameterRightDelimiter' => null,
-			'parameterFilters'        => array(),
+			'parameterDirectoryName' => '%VAR%',
+			'searchExtensions'       => 'php',
+			'overwriteGlobals'       => true,
 		));
 		if (!empty($configurations)) {
 			$this->config->attributes($configurations);
@@ -206,8 +201,6 @@ class Router
 				switch ($name) {
 				case 'parameterDirectoryName':
 				case 'searchExtensions':
-				case 'parameterLeftDelimiter':
-				case 'parameterRightDelimiter':
 					if (!is_string($value)) {
 						throw new \InvalidArgumentException(
 							sprintf('The config parameter "%s" only accepts string.', $name));
@@ -220,12 +213,6 @@ class Router
 					if (!is_bool($value)) {
 						throw new \InvalidArgumentException(
 							sprintf('The config parameter "%s" only accepts boolean.', $name));
-					}
-					break;
-				case 'parameterFilters':
-					if (!is_array($value)) {
-						throw new \InvalidArgumentException(
-							sprintf('The config parameter "%s" only accepts array.', $name));
 					}
 					break;
 				}
@@ -372,7 +359,6 @@ class Router
 	 * @return object Router
 	 * @throws \RuntimeException
 	 * @throws Exception\NotFoundException
-	 * @throws Exception\InvalidParameterException
 	 */
 	public function prepare($requestUri = null)
 	{
@@ -397,12 +383,6 @@ class Router
 		$fragment    = (isset($matches[3])) ? $matches[3] : '';
 
 		$parameterDirectoryName = $this->config('parameterDirectoryName');
-
-		// パラメータの左デリミタと右デリミタの両方が指定されている場合のみ検索
-		$parameterLeftDelimiter = $this->config('parameterLeftDelimiter');
-		$parameterRightDelimiter = $this->config('parameterRightDelimiter');
-		$searchParameter = (isset($parameterLeftDelimiter) && isset($parameterRightDelimiter));
-
 		$searchExtensions = $this->config('searchExtensions');
 		if (is_string($searchExtensions)) {
 			$searchExtensions = explode(',', $searchExtensions);
@@ -417,8 +397,6 @@ class Router
 		$segmentCount = count($segments);
 
 		foreach ($segments as $index => $segment) {
-
-			// セグメント内の . を展開
 			$pos = strrpos($segment, '.');
 			if ($pos !== false) {
 				$filename = $this->findFile($documentRoot . $translateDirectory, $segment);
@@ -442,15 +420,11 @@ class Router
 					}
 				}
 			}
-
-			// 実ディレクトリがあれば次のセグメントへ
 			if (is_dir($documentRoot . $translateDirectory . self::DS . $segment)) {
 				$scriptName .= self::DS . $segment;
 				$translateDirectory .= self::DS . $segment;
 				continue;
 			}
-
-			// 実ファイルがあれば終了
 			$filename = $this->findFile($documentRoot . $translateDirectory,
 				$segment, $searchExtensions);
 			if (isset($filename)) {
@@ -458,8 +432,6 @@ class Router
 				$fileSegmentIndex = $index;
 				break;
 			}
-
-			// パラメータディレクトリがあれば次のセグメントへ
 			if (is_dir($documentRoot . $translateDirectory . self::DS .
 				$parameterDirectoryName)
 			) {
@@ -467,46 +439,6 @@ class Router
 				$scriptName .= self::DS . $segment;
 				$this->parameters[] = $segment;
 				continue;
-			}
-
-			// デリミタでパラメータディレクトリを検索
-			if ($searchParameter) {
-				$pattern = $documentRoot . $translateDirectory . self::DS .
-					sprintf('%s*%s', $parameterLeftDelimiter, $parameterRightDelimiter);
-				$dirs = glob($pattern, GLOB_ONLYDIR);
-				if (count($dirs) >= 1) {
-					$parameterValue = null;
-					foreach ($dirs as $dir) {
-						$parameterSegment = substr($dir, strrpos($dir, self::DS) + 1);
-						$parameterType = substr($parameterSegment, strlen($parameterLeftDelimiter),
-							strlen($parameterSegment) - strlen($parameterLeftDelimiter) - strlen($parameterRightDelimiter)
-						);
-						$filters = $this->config->get('parameterFilters');
-						// ユーザフィルタが未定義かつCtype関数に合致すれば妥当なパラメータ値とする
-						if (empty($filters) && is_callable('ctype_' . $parameterType)) {
-							$filter = 'ctype_' . $parameterType;
-							if (call_user_func($filter, $segment)) {
-								$parameterValue = $segment;
-								break;
-							}
-						}
-						// ユーザフィルタが定義されており、実行結果がNULL以外の場合は妥当なパラメータ値とする
-						if (array_key_exists($parameterType, $filters)) {
-							$parameterValue = $filters[$parameterType]($segment);
-							if (isset($parameterValue)) {
-								break;
-							}
-						}
-					}
-					if (!isset($parameterValue)) {
-						throw new InvalidParameterException(
-							sprintf('The parameter of the segment in Uri\'s path "%s" is not valid in requestPath "%s".', $segment, $requestPath));
-					}
-					$translateDirectory .= self::DS . $parameterSegment;
-					$scriptName .= self::DS . $segment;
-					$this->parameters[] = $parameterValue;
-					continue;
-				}
 			}
 			throw new NotFoundException(
 				sprintf('The file that corresponds to the segment of Uri\'s path "%s" is not found in requestPath "%s".', $segment, $requestPath));
