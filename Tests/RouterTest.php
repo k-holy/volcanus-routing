@@ -39,9 +39,12 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	{
 		$default_config = $this->router->configurations();
 		$this->router = new Router(array(
-			'parameterDirectoryName' => '__VAR__',
-			'searchExtensions'       => 'php,html',
-			'overwriteGlobals'       => false,
+			'parameterDirectoryName'  => '__VAR__',
+			'searchExtensions'        => 'php,html',
+			'overwriteGlobals'        => false,
+			'parameterLeftDelimiter'  => null,
+			'parameterRightDelimiter' => null,
+			'parameterFilters'        => array(),
 		));
 		$this->router->initialize();
 		$this->assertEquals($default_config, $this->router->configurations());
@@ -76,13 +79,17 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	public function testInstanceWithConfiguration()
 	{
 		$this->router = new Router(array(
-			'parameterDirectoryName' => '__VAR__',
-			'searchExtensions'       => 'php,html',
-			'overwriteGlobals'       => false,
+			'parameterDirectoryName'  => '__VAR__',
+			'searchExtensions'        => 'php,html',
+			'overwriteGlobals'        => false,
+			'parameterLeftDelimiter'  => '{%',
+			'parameterRightDelimiter' => '%}',
 		));
 		$this->assertEquals('__VAR__' , $this->router->config('parameterDirectoryName'));
 		$this->assertEquals('php,html', $this->router->config('searchExtensions'));
 		$this->assertFalse($this->router->config('overwriteGlobals'));
+		$this->assertEquals('{%', $this->router->config('parameterLeftDelimiter'));
+		$this->assertEquals('%}', $this->router->config('parameterRightDelimiter'));
 	}
 
 	public function testSetRequestUri()
@@ -182,6 +189,88 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router->server('REQUEST_URI', '/');
 		$this->router->prepare();
 		$this->assertNull($this->router->parameter(0));
+	}
+
+	public function testParameterWithDelimiterByBuiltInFilterDigit()
+	{
+		$this->router->config('parameterLeftDelimiter', '{%');
+		$this->router->config('parameterRightDelimiter', '%}');
+		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$this->router->server('REQUEST_URI', '/users/1'); // /users/{%digit%}
+		$this->router->prepare();
+		$this->assertEquals($this->router->parameter(0), '1');
+		$this->assertEquals($this->router->parameters(), array('1'));
+	}
+
+	public function testParameterWithDelimiterByBuiltInFilterAlpha()
+	{
+		$this->router->config('parameterLeftDelimiter', '{%');
+		$this->router->config('parameterRightDelimiter', '%}');
+		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$this->router->server('REQUEST_URI', '/users/kholy'); // /users/{%alpha%}
+		$this->router->prepare();
+		$this->assertEquals($this->router->parameter(0), 'kholy');
+		$this->assertEquals($this->router->parameters(), array('kholy'));
+	}
+
+	/**
+	 * @expectedException \Volcanus\Routing\Exception\InvalidParameterException
+	 */
+	public function testParameterWithDelimiterByBuiltInFilterRaiseException()
+	{
+		$this->router->config('parameterLeftDelimiter', '{%');
+		$this->router->config('parameterRightDelimiter', '%}');
+		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$this->router->server('REQUEST_URI', '/users/k-holy');
+		$this->router->prepare();
+	}
+
+	public function testParameterWithDelimiterByCustomFilter()
+	{
+		$this->router->config('parameterLeftDelimiter', '{%');
+		$this->router->config('parameterRightDelimiter', '%}');
+		$this->router->config('parameterFilters', array(
+			'digit' => function($value) {
+				if (ctype_digit($value)) {
+					return intval($value);
+				}
+			},
+			'graph' => function($value) {
+				if (ctype_graph($value)) {
+					return $value;
+				}
+			},
+		));
+		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$this->router->server('REQUEST_URI', '/users/1/profiles/k-holy');
+		$this->router->prepare();
+		$this->assertEquals($this->router->parameter(0), 1);
+		$this->assertEquals($this->router->parameter(1), 'k-holy');
+		$this->assertEquals($this->router->parameters(), array(1, 'k-holy'));
+	}
+
+	/**
+	 * @expectedException \Volcanus\Routing\Exception\InvalidParameterException
+	 */
+	public function testParameterWithDelimiterByCustomFilterRaiseExceptionWhenAllFiltersDoesNotReturnValue()
+	{
+		$this->router->config('parameterLeftDelimiter', '{%');
+		$this->router->config('parameterRightDelimiter', '%}');
+		$this->router->config('parameterFilters', array(
+			'digit' => function($value) {
+				if (ctype_digit($value)) {
+					return intval($value);
+				}
+			},
+			'graph' => function($value) {
+				if (ctype_graph($value) && strlen($value) <= 12) {
+					return $value;
+				}
+			},
+		));
+		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$this->router->server('REQUEST_URI', '/users/1/profiles/veryverylongname/');
+		$this->router->prepare();
 	}
 
 	public function testTranslateDirectory()
