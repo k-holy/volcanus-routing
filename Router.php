@@ -482,18 +482,17 @@ class Router
 							strlen($parameterSegment) - strlen($parameterLeftDelimiter) - strlen($parameterRightDelimiter)
 						);
 						$filters = $this->config->get('parameterFilters');
-						// ユーザフィルタが未定義かつCtype関数に合致すれば妥当なパラメータ値とする
-						if (empty($filters) && is_callable('ctype_' . $parameterType)) {
-							$filter = 'ctype_' . $parameterType;
-							if (call_user_func($filter, $segment)) {
-								$parameterValue = $segment;
-								break;
-							}
-						}
 						// ユーザフィルタが定義されており、実行結果がNULL以外の場合は妥当なパラメータ値とする
 						if (array_key_exists($parameterType, $filters)) {
 							$parameterValue = $filters[$parameterType]($segment);
 							if (isset($parameterValue)) {
+								break;
+							}
+						// ユーザフィルタが未定義かつCtype関数に合致すれば妥当なパラメータ値とする
+						} elseif (is_callable('ctype_' . $parameterType)) {
+							$filter = 'ctype_' . $parameterType;
+							if (call_user_func($filter, $segment)) {
+								$parameterValue = $segment;
 								break;
 							}
 						}

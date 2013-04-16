@@ -12,39 +12,65 @@
 また、パラメータディレクトリと呼ぶ特別な名前のディレクトリを設定することで、
 リクエストURIのパスに含まれるパラメータを取得する機能を提供します。
 
-##使用例
+
+##対応環境
+
+* PHP 5.3以降
+
+
+##依存ライブラリ
+
+* [Volcanus_Configuration](https://github.com/k-holy/Volcanus_Configuration)
+
+テストケースの実行には composer による上記ライブラリのインストールが必要です。
+
+
+##簡単な使い方
 
 以下は Apache + mod_rewrite での使用例です。
 
 ###/.htaccess
-	RewriteEngine On
-	RewriteBase /
-	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteCond %{REQUEST_FILENAME} !-f
-	RewriteCond %{REQUEST_FILENAME} !\.(ico|gif|jpe?g|png|swf|pdf|css|js)$ [NC]
-	RewriteRule ^(.*)$ __gateway.php [QSA,L]
+```
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ __gateway.php [QSA,L]
+```
+
+なお Apache 2.2.16以上の場合は [FallbackResource](http://httpd.apache.org/docs/trunk/en/mod/mod_dir.html#fallbackresource) ディレクティブが便利です。
+
+###/.htaccess (Apache 2.2.16以上)
+```
+FallbackResource /__gateway.php
+```
 
 存在しないディレクトリまたはファイルへのリクエストがあれば、
-画像やPDF, CSS, JasvaScript等の静的ファイルへのリクエストを除き、
-全てゲートウェイスクリプト(__gateway.php)に転送します。
+以下のゲートウェイスクリプト(__gateway.php)に転送されます。
 
 ###/__gateway.php
-	<?php
-	use Volcanus\Routing\Router;
-	use Volcanus\Routing\Exception\NotFoundException;
-	$router = Router::instance(array(
-		'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
-		'searchExtensions'       => 'php',   // 読み込み対象スクリプトの拡張子を php と設定する
-		'overwriteGlobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
-	));
-	$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
-	try {
-		$router->prepare();
-	} catch (NotFoundException $e) {
-		header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
-		exit();
-	}
-	$router->execute();
+```php
+<?php
+use Volcanus\Routing\Router;
+use Volcanus\Routing\Exception\NotFoundException;
+
+$router = Router::instance(array(
+	'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
+	'searchExtensions'       => 'php',   // 読み込み対象スクリプトの拡張子を php と設定する
+	'overwriteGlobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
+));
+
+$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
+
+try {
+	$router->prepare();
+} catch (NotFoundException $e) {
+	header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
+	exit();
+}
+
+$router->execute();
+```
 
 "/categories/1/items/2/detail.json" というリクエストURIに対して上記の設定でルーティングを行った場合、
 ドキュメントルート以下の "/categories/%VAR%/items/%VAR%/detail.php" スクリプトが読み込まれ、
@@ -59,12 +85,15 @@ $_SERVERグローバル変数のうち PHP_SELF, SCRIPT_NAME, SCRIPT_FILENAME, P
 ルーティング結果に従って書き換えられます。
 
 ###/categories/%VAR%/items/%VAR%/detail.php
-	<?php
-	use Volcanus\Routing\Router;
-	$router = Router::instance();
-	$categoryId = $router->parameter(0); // '1'
-	$itemId     = $router->parameter(1); // '2'
-	$extension  = $router->extension();  // 'json'
+```php
+<?php
+use Volcanus\Routing\Router;
+
+$router = Router::instance();
+$categoryId = $router->parameter(0); // '1'
+$itemId     = $router->parameter(1); // '2'
+$extension  = $router->extension();  // 'json'
+```
 
 Router::instance()メソッドはSingletonとして実装されており、
 読み込まれたスクリプトからルーティング結果を参照できます。
@@ -76,3 +105,121 @@ Router::instance()メソッドはSingletonとして実装されており、
 コンストラクタの利用を禁止しているわけではないので、
 たとえばルーティング実行後にRouterのインスタンスやparameters()メソッドの戻り値をグローバル変数や類似のオブジェクトにセットしておき、
 読み込み先のスクリプトから参照するような使い方も可能です。
+
+
+##デリミタ指定によるパラメータの型指定
+
+ver 0.2.0より、左右のデリミタおよび型を指定して、リクエストパスのパラメータを取得できるようになりました。
+
+標準ではパラメータのセグメントとして alpha, digit, alnum, graph といったCtype関数の各キーワードを含むディレクトリ名を利用できます。
+
+###/__gateway.php
+```php
+<?php
+use Volcanus\Routing\Router;
+use Volcanus\Routing\Exception\NotFoundException;
+use Volcanus\Routing\Exception\InvalidArgumentException;
+
+$router = Router::instance(array(
+	'parameterDirectoryLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
+	'parameterDirectoryRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
+	'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
+	'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
+));
+
+$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
+
+try {
+	$router->prepare();
+} catch (NotFoundException $e) {
+	header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
+	exit();
+} catch (InvalidArgumentException $e) {
+	header(sprintf('%s 400 Bad Parameter', $_SERVER['SERVER_PROTOCOL']));
+	exit();
+}
+
+$router->execute();
+```
+
+ドキュメントルート以下に "/users/{%digit%}/index.php" というスクリプトが存在するとして…
+
+"/users/foo" というリクエストURIのルーティングでは、InvalidArgumentException によりステータス400が返されます。
+
+"/users/1" というリクエストURIのルーティングでは、該当スクリプトが読み込まれます。
+
+###/users/{%digit%}/index.php
+```php
+<?php
+use Volcanus\Routing\Router;
+
+$router = Router::instance();
+$$user_id = $router->parameter(0); // (string) '1'
+```
+
+##デリミタ指定および独自フィルタによるパラメータの検証と変換
+
+parameterFilters オプションを利用して独自のフィルタを定義し、
+Ctype関数に拠らないパラメータの検証を行ったり、パラメータの値を変換することもできます。
+
+###/__gateway.php
+```php
+<?php
+use Volcanus\Routing\Router;
+use Volcanus\Routing\Exception\NotFoundException;
+use Volcanus\Routing\Exception\InvalidArgumentException;
+
+$router = Router::instance(array(
+	'parameterDirectoryLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
+	'parameterDirectoryRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
+	'parameterFilters' => array(
+		// 独自のフィルタ "profile_id" を設定する
+		'profile_id' => function($value) {
+			if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
+				throw new InvalidParameterException('oh...');
+			}
+			return $value;
+		},
+		// 標準のフィルタ "digit" を上書き設定する
+		'digit' => function($value) {
+			if (!ctype_digit($value)) {
+				throw new InvalidArgumentException('oh...');
+			}
+			return intval($value);
+		},
+	),
+	'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
+	'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
+));
+
+$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
+
+try {
+	$router->prepare();
+} catch (NotFoundException $e) {
+	header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
+	exit();
+} catch (InvalidArgumentException $e) {
+	header(sprintf('%s 400 Bad Parameter', $_SERVER['SERVER_PROTOCOL']));
+	exit();
+}
+
+$router->execute();
+```
+
+ドキュメントルート以下に "/users/{%digit%}/profiles/{%profile_id%}/index.php" というスクリプトが存在するとして…
+
+"/users/1/profiles/invalid@id" というリクエストURIのルーティングでは、InvalidArgumentException によりステータス400が返されます。
+
+"/users/1/profiles/k-holy" というリクエストURIのルーティングでは、該当スクリプトが読み込まれます。
+
+###/users/{%digit%}/profiles/{%profile_id%}/index.php
+```php
+<?php
+use Volcanus\Routing\Router;
+
+$router = Router::instance();
+$user_id = $router->parameter(0); // (int) 1
+$profile_id = $router->parameter(1); // (string) 'k-holy'
+```
+

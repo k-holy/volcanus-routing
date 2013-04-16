@@ -230,15 +230,17 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router->config('parameterLeftDelimiter', '{%');
 		$this->router->config('parameterRightDelimiter', '%}');
 		$this->router->config('parameterFilters', array(
-			'digit' => function($value) {
-				if (ctype_digit($value)) {
-					return intval($value);
+			'profile_id' => function($value) {
+				if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
+					throw new \Volcanus\Routing\Exception\InvalidParameterException('oh...');
 				}
+				return $value;
 			},
-			'graph' => function($value) {
-				if (ctype_graph($value)) {
-					return $value;
+			'digit' => function($value) {
+				if (!ctype_digit($value)) {
+					throw new \Volcanus\Routing\Exception\InvalidParameterException('oh...');
 				}
+				return intval($value);
 			},
 		));
 		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
@@ -257,19 +259,15 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->router->config('parameterLeftDelimiter', '{%');
 		$this->router->config('parameterRightDelimiter', '%}');
 		$this->router->config('parameterFilters', array(
-			'digit' => function($value) {
-				if (ctype_digit($value)) {
-					return intval($value);
+			'profile_id' => function($value) {
+				if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
+					throw new \Volcanus\Routing\Exception\InvalidParameterException('oh...');
 				}
-			},
-			'graph' => function($value) {
-				if (ctype_graph($value) && strlen($value) <= 12) {
-					return $value;
-				}
+				return $value;
 			},
 		));
 		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/users/1/profiles/veryverylongname/');
+		$this->router->server('REQUEST_URI', '/users/1/profiles/invalid@id');
 		$this->router->prepare();
 	}
 
