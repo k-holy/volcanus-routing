@@ -53,6 +53,7 @@ FallbackResource /__gateway.php
 <?php
 use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
+use Volcanus\Routing\Exception\InvalidParameterException;
 
 $router = Router::instance(array(
 	'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
@@ -63,13 +64,25 @@ $router = Router::instance(array(
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
 try {
-	$router->prepare();
-} catch (NotFoundException $e) {
-	header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
-	exit();
-}
 
-$router->execute();
+	$router->prepare()->execute();
+
+} catch (\Exception $e) {
+
+	$text = '500 Internal Server Error';
+	if ($e instanceof NotFoundException) {
+		$text = '404 Not Found';
+	}
+
+	if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+		header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+	}
+
+	echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+	);
+}
 ```
 
 "/categories/1/items/2/detail.json" というリクエストURIに対して上記の設定でルーティングを行った場合、
@@ -118,11 +131,11 @@ ver 0.2.0より、左右のデリミタおよび型を指定して、リクエ�
 <?php
 use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
-use Volcanus\Routing\Exception\InvalidArgumentException;
+use Volcanus\Routing\Exception\InvalidParameterException;
 
 $router = Router::instance(array(
-	'parameterDirectoryLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
-	'parameterDirectoryRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
+	'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
+	'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
 	'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
 	'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
 ));
@@ -130,21 +143,31 @@ $router = Router::instance(array(
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
 try {
-	$router->prepare();
-} catch (NotFoundException $e) {
-	header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
-	exit();
-} catch (InvalidArgumentException $e) {
-	header(sprintf('%s 400 Bad Parameter', $_SERVER['SERVER_PROTOCOL']));
-	exit();
-}
 
-$router->execute();
+	$router->prepare()->execute();
+
+} catch (\Exception $e) {
+
+	$text = '500 Internal Server Error';
+	if ($e instanceof NotFoundException) {
+		$text = '404 Not Found';
+	} elseif ($e instanceof InvalidParameterException) {
+		$text = '400 Bad Request';
+	}
+
+	if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+		header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+	}
+
+	echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+	);
 ```
 
 ドキュメントルート以下に "/users/{%digit%}/index.php" というスクリプトが存在するとして…
 
-"/users/foo" というリクエストURIのルーティングでは、InvalidArgumentException によりステータス400が返されます。
+"/users/foo" というリクエストURIのルーティングでは、InvalidParameterException によりステータス400が返されます。
 
 "/users/1" というリクエストURIのルーティングでは、該当スクリプトが読み込まれます。
 
@@ -167,11 +190,11 @@ Ctype関数に拠らないパラメータの検証を行ったり、パラメー
 <?php
 use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
-use Volcanus\Routing\Exception\InvalidArgumentException;
+use Volcanus\Routing\Exception\InvalidParameterException;
 
 $router = Router::instance(array(
-	'parameterDirectoryLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
-	'parameterDirectoryRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
+	'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
+	'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
 	'parameterFilters' => array(
 		// 独自のフィルタ "profile_id" を設定する
 		'profile_id' => function($value) {
@@ -183,7 +206,7 @@ $router = Router::instance(array(
 		// 標準のフィルタ "digit" を上書き設定する
 		'digit' => function($value) {
 			if (!ctype_digit($value)) {
-				throw new InvalidArgumentException('oh...');
+				throw new InvalidParameterException('oh...');
 			}
 			return intval($value);
 		},
@@ -195,21 +218,32 @@ $router = Router::instance(array(
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
 try {
-	$router->prepare();
-} catch (NotFoundException $e) {
-	header(sprintf('%s 404 Not Found', $_SERVER['SERVER_PROTOCOL']));
-	exit();
-} catch (InvalidArgumentException $e) {
-	header(sprintf('%s 400 Bad Parameter', $_SERVER['SERVER_PROTOCOL']));
-	exit();
-}
 
-$router->execute();
+	$router->prepare()->execute();
+
+} catch (\Exception $e) {
+
+	$text = '500 Internal Server Error';
+	if ($e instanceof NotFoundException) {
+		$text = '404 Not Found';
+	} elseif ($e instanceof InvalidParameterException) {
+		$text = '400 Bad Request';
+	}
+
+	if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+		header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+	}
+
+	echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+	);
+}
 ```
 
 ドキュメントルート以下に "/users/{%digit%}/profiles/{%profile_id%}/index.php" というスクリプトが存在するとして…
 
-"/users/1/profiles/invalid@id" というリクエストURIのルーティングでは、InvalidArgumentException によりステータス400が返されます。
+"/users/1/profiles/invalid@id" というリクエストURIのルーティングでは、InvalidParameterException によりステータス400が返されます。
 
 "/users/1/profiles/k-holy" というリクエストURIのルーティングでは、該当スクリプトが読み込まれます。
 
