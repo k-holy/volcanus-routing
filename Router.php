@@ -170,7 +170,7 @@ class Router
 	{
 		switch (func_num_args()) {
 		case 0:
-			return $this->config->toArray();
+			return $this->config->attributes();
 		case 1:
 			$configurations = func_get_arg(0);
 			if (!is_array($configurations)) {
