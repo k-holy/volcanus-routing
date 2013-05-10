@@ -482,4 +482,24 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		ob_end_clean();
 	}
 
+	public function testParameterIsNotInitializedWhenGetSecondInstanceWithConfigurations()
+	{
+		$configurations = array(
+			'parameterDirectoryName'  => '__VAR__',
+			'searchExtensions'        => 'php,html',
+			'overwriteGlobals'        => false,
+			'parameterLeftDelimiter'  => null,
+			'parameterRightDelimiter' => null,
+			'parameterFilters'        => array(),
+		);
+		$router = Router::instance($configurations);
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/items/2/');
+		$router->prepare();
+		$router = Router::instance($configurations);
+		$this->assertEquals($router->parameter(0), '1');
+		$this->assertEquals($router->parameter(1), '2');
+		$this->assertEquals($router->parameters(), array('1', '2'));
+	}
+
 }

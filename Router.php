@@ -144,8 +144,6 @@ class Router
 	{
 		if (!isset(self::$instance)) {
 			self::$instance = new self($configurations);
-		} elseif (!empty($configurations)) {
-			self::$instance->initialize($configurations);
 		}
 		return self::$instance;
 	}
