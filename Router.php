@@ -10,8 +10,6 @@ namespace Volcanus\Routing;
 use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
-use Volcanus\Configuration\Configuration;
-
 /**
  * Router
  *

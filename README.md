@@ -20,9 +20,9 @@
 
 ##依存ライブラリ
 
-* [Volcanus_Configuration](https://github.com/k-holy/Volcanus_Configuration)
+なし
 
-テストケースの実行には composer による上記ライブラリのインストールが必要です。
+[Volcanus_Configuration](https://github.com/k-holy/Volcanus_Configuration) への依存は ver 0.2.3 よりなくなりました。
 
 
 ##簡単な使い方
