@@ -18,14 +18,12 @@ use Volcanus\Routing\Router;
 class RouterTest extends \PHPUnit_Framework_TestCase
 {
 
-	private $router = null;
 	private $script = null;
 	private $documentRoot = null;
 
 	public function setUp()
 	{
 		$this->documentRoot = realpath(__DIR__ . '/RouterTest');
-		$this->router = new Router();
 	}
 
 	public function tearDown()
@@ -35,21 +33,6 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		}
 	}
 
-	public function testInitialize()
-	{
-		$default_config = $this->router->configurations();
-		$this->router = new Router(array(
-			'parameterDirectoryName'  => '__VAR__',
-			'searchExtensions'        => 'php,html',
-			'overwriteGlobals'        => false,
-			'parameterLeftDelimiter'  => null,
-			'parameterRightDelimiter' => null,
-			'parameterFilters'        => array(),
-		));
-		$this->router->initialize();
-		$this->assertEquals($default_config, $this->router->configurations());
-	}
-
 	public function testSingleton()
 	{
 		$this->assertSame(Router::instance(), Router::instance());
@@ -57,15 +40,17 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
 	public function testConfig()
 	{
-		$this->router->config('parameterDirectoryName', '__VAR__');
-		$this->assertEquals('__VAR__', $this->router->config('parameterDirectoryName'));
+		$router = new Router();
+		$router->config('parameterDirectoryName', '__VAR__');
+		$this->assertEquals('__VAR__', $router->config('parameterDirectoryName'));
 	}
 
 	public function testDefaultConfiguration()
 	{
-		$this->assertEquals('%VAR%', $this->router->config('parameterDirectoryName'));
-		$this->assertEquals('php'  , $this->router->config('searchExtensions'));
-		$this->assertTrue($this->router->config('overwriteGlobals'));
+		$router = new Router();
+		$this->assertEquals('%VAR%', $router->config('parameterDirectoryName'));
+		$this->assertEquals('php'  , $router->config('searchExtensions'));
+		$this->assertTrue($router->config('overwriteGlobals'));
 	}
 
 	/**
@@ -73,41 +58,45 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testRaiseExceptionWhenUnsupportedConfig()
 	{
-		$this->router->config('Foo');
+		$router = new Router();
+		$router->config('Foo');
 	}
 
 	public function testInstanceWithConfiguration()
 	{
-		$this->router = new Router(array(
+		$router = new Router(array(
 			'parameterDirectoryName'  => '__VAR__',
 			'searchExtensions'        => 'php,html',
 			'overwriteGlobals'        => false,
 			'parameterLeftDelimiter'  => '{%',
 			'parameterRightDelimiter' => '%}',
 		));
-		$this->assertEquals('__VAR__' , $this->router->config('parameterDirectoryName'));
-		$this->assertEquals('php,html', $this->router->config('searchExtensions'));
-		$this->assertFalse($this->router->config('overwriteGlobals'));
-		$this->assertEquals('{%', $this->router->config('parameterLeftDelimiter'));
-		$this->assertEquals('%}', $this->router->config('parameterRightDelimiter'));
+		$this->assertEquals('__VAR__' , $router->config('parameterDirectoryName'));
+		$this->assertEquals('php,html', $router->config('searchExtensions'));
+		$this->assertFalse($router->config('overwriteGlobals'));
+		$this->assertEquals('{%', $router->config('parameterLeftDelimiter'));
+		$this->assertEquals('%}', $router->config('parameterRightDelimiter'));
 	}
 
 	public function testSetRequestUri()
 	{
-		$this->router->server('REQUEST_URI', '/path/to/request.php');
-		$this->assertEquals('/path/to/request.php', $this->router->server('REQUEST_URI'));
+		$router = new Router();
+		$router->server('REQUEST_URI', '/path/to/request.php');
+		$this->assertEquals('/path/to/request.php', $router->server('REQUEST_URI'));
 	}
 
 	public function testSetDocumentRoot()
 	{
-		$this->router->server('DOCUMENT_ROOT', '/path/to/document/root');
-		$this->assertEquals('/path/to/document/root', $this->router->server('DOCUMENT_ROOT'));
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', '/path/to/document/root');
+		$this->assertEquals('/path/to/document/root', $router->server('DOCUMENT_ROOT'));
 	}
 
 	public function testSetDocumentRootNormalizeDirectorySeparator()
 	{
-		$this->router->server('DOCUMENT_ROOT', 'C:\path\to\document\root');
-		$this->assertEquals('C:/path/to/document/root', $this->router->server('DOCUMENT_ROOT'));
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', 'C:\path\to\document\root');
+		$this->assertEquals('C:/path/to/document/root', $router->server('DOCUMENT_ROOT'));
 	}
 
 	/**
@@ -115,7 +104,8 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testRaiseExceptionWhenSetServerVarIsNotAccepted()
 	{
-		$this->router->server('REQUEST_METHOD', 'HEAD');
+		$router = new Router();
+		$router->server('REQUEST_METHOD', 'HEAD');
 	}
 
 	/**
@@ -123,7 +113,8 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testRaiseExceptionWhenSetServerVarIsNotString()
 	{
-		$this->router->server('REQUEST_URI', array());
+		$router = new Router();
+		$router->server('REQUEST_URI', array());
 	}
 
 	public function testImportGlobals()
@@ -135,14 +126,15 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$_SERVER['PHP_SELF'       ] = '/request/uri.php/foo/bar';
 		$_SERVER['SCRIPT_NAME'    ] = '/request/uri.php';
 		$_SERVER['SCRIPT_FILENAME'] = '/path/to/document/root/request/uri.php';
-		$this->router->importGlobals();
-		$this->assertEquals($_SERVER['DOCUMENT_ROOT'  ], $this->router->server('DOCUMENT_ROOT'));
-		$this->assertEquals($_SERVER['REQUEST_URI'    ], $this->router->server('REQUEST_URI'));
-		$this->assertEquals($_SERVER['PATH_INFO'      ], $this->router->server('PATH_INFO'));
-		$this->assertEquals($_SERVER['PATH_TRANSLATED'], $this->router->server('PATH_TRANSLATED'));
-		$this->assertEquals($_SERVER['PHP_SELF'       ], $this->router->server('PHP_SELF'));
-		$this->assertEquals($_SERVER['SCRIPT_NAME'    ], $this->router->server('SCRIPT_NAME'));
-		$this->assertEquals($_SERVER['SCRIPT_FILENAME'], $this->router->server('SCRIPT_FILENAME'));
+		$router = new Router();
+		$router->importGlobals();
+		$this->assertEquals($_SERVER['DOCUMENT_ROOT'  ], $router->server('DOCUMENT_ROOT'));
+		$this->assertEquals($_SERVER['REQUEST_URI'    ], $router->server('REQUEST_URI'));
+		$this->assertEquals($_SERVER['PATH_INFO'      ], $router->server('PATH_INFO'));
+		$this->assertEquals($_SERVER['PATH_TRANSLATED'], $router->server('PATH_TRANSLATED'));
+		$this->assertEquals($_SERVER['PHP_SELF'       ], $router->server('PHP_SELF'));
+		$this->assertEquals($_SERVER['SCRIPT_NAME'    ], $router->server('SCRIPT_NAME'));
+		$this->assertEquals($_SERVER['SCRIPT_FILENAME'], $router->server('SCRIPT_FILENAME'));
 	}
 
 	/**
@@ -150,8 +142,9 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testPrepareRaiseExceptionWhenDocumentRootIsNotSet()
 	{
-		$this->router->server('REQUEST_URI', '/');
-		$this->router->prepare();
+		$router = new Router();
+		$router->server('REQUEST_URI', '/');
+		$router->prepare();
 	}
 
 	/**
@@ -159,8 +152,9 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testPrepareRaiseExceptionWhenRequestUriIsNotSet()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->prepare();
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->prepare();
 	}
 
 	/**
@@ -168,49 +162,54 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testPrepareRaiseExceptionWhenIncludeFileCouldNotFound()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/path/could/not/found');
-		$this->router->prepare();
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/path/could/not/found');
+		$router->prepare();
 	}
 
 	public function testParameter()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/items/2/');
-		$this->router->prepare();
-		$this->assertEquals($this->router->parameter(0), '1');
-		$this->assertEquals($this->router->parameter(1), '2');
-		$this->assertEquals($this->router->parameters(), array('1', '2'));
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/items/2/');
+		$router->prepare();
+		$this->assertEquals($router->parameter(0), '1');
+		$this->assertEquals($router->parameter(1), '2');
+		$this->assertEquals($router->parameters(), array('1', '2'));
 	}
 
 	public function testEmptyParameter()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/');
-		$this->router->prepare();
-		$this->assertNull($this->router->parameter(0));
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/');
+		$router->prepare();
+		$this->assertNull($router->parameter(0));
 	}
 
 	public function testParameterWithDelimiterByBuiltInFilterDigit()
 	{
-		$this->router->config('parameterLeftDelimiter', '{%');
-		$this->router->config('parameterRightDelimiter', '%}');
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/users/1'); // /users/{%digit%}
-		$this->router->prepare();
-		$this->assertEquals($this->router->parameter(0), '1');
-		$this->assertEquals($this->router->parameters(), array('1'));
+		$router = new Router();
+		$router->config('parameterLeftDelimiter', '{%');
+		$router->config('parameterRightDelimiter', '%}');
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/users/1'); // /users/{%digit%}
+		$router->prepare();
+		$this->assertEquals($router->parameter(0), '1');
+		$this->assertEquals($router->parameters(), array('1'));
 	}
 
 	public function testParameterWithDelimiterByBuiltInFilterAlpha()
 	{
-		$this->router->config('parameterLeftDelimiter', '{%');
-		$this->router->config('parameterRightDelimiter', '%}');
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/users/kholy'); // /users/{%alpha%}
-		$this->router->prepare();
-		$this->assertEquals($this->router->parameter(0), 'kholy');
-		$this->assertEquals($this->router->parameters(), array('kholy'));
+		$router = new Router();
+		$router->config('parameterLeftDelimiter', '{%');
+		$router->config('parameterRightDelimiter', '%}');
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/users/kholy'); // /users/{%alpha%}
+		$router->prepare();
+		$this->assertEquals($router->parameter(0), 'kholy');
+		$this->assertEquals($router->parameters(), array('kholy'));
 	}
 
 	/**
@@ -218,18 +217,20 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testParameterWithDelimiterByBuiltInFilterRaiseException()
 	{
-		$this->router->config('parameterLeftDelimiter', '{%');
-		$this->router->config('parameterRightDelimiter', '%}');
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/users/k-holy');
-		$this->router->prepare();
+		$router = new Router();
+		$router->config('parameterLeftDelimiter', '{%');
+		$router->config('parameterRightDelimiter', '%}');
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/users/k-holy');
+		$router->prepare();
 	}
 
 	public function testParameterWithDelimiterByCustomFilter()
 	{
-		$this->router->config('parameterLeftDelimiter', '{%');
-		$this->router->config('parameterRightDelimiter', '%}');
-		$this->router->config('parameterFilters', array(
+		$router = new Router();
+		$router->config('parameterLeftDelimiter', '{%');
+		$router->config('parameterRightDelimiter', '%}');
+		$router->config('parameterFilters', array(
 			'profile_id' => function($value) {
 				if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
 					throw new \Volcanus\Routing\Exception\InvalidParameterException('oh...');
@@ -243,12 +244,12 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 				return intval($value);
 			},
 		));
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/users/1/profiles/k-holy');
-		$this->router->prepare();
-		$this->assertEquals($this->router->parameter(0), 1);
-		$this->assertEquals($this->router->parameter(1), 'k-holy');
-		$this->assertEquals($this->router->parameters(), array(1, 'k-holy'));
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/users/1/profiles/k-holy');
+		$router->prepare();
+		$this->assertEquals($router->parameter(0), 1);
+		$this->assertEquals($router->parameter(1), 'k-holy');
+		$this->assertEquals($router->parameters(), array(1, 'k-holy'));
 	}
 
 	/**
@@ -256,9 +257,10 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	 */
 	public function testParameterWithDelimiterByCustomFilterRaiseExceptionWhenAllFiltersDoesNotReturnValue()
 	{
-		$this->router->config('parameterLeftDelimiter', '{%');
-		$this->router->config('parameterRightDelimiter', '%}');
-		$this->router->config('parameterFilters', array(
+		$router = new Router();
+		$router->config('parameterLeftDelimiter', '{%');
+		$router->config('parameterRightDelimiter', '%}');
+		$router->config('parameterFilters', array(
 			'profile_id' => function($value) {
 				if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
 					throw new \Volcanus\Routing\Exception\InvalidParameterException('oh...');
@@ -266,204 +268,222 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 				return $value;
 			},
 		));
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/users/1/profiles/invalid@id');
-		$this->router->prepare();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/users/1/profiles/invalid@id');
+		$router->prepare();
 	}
 
 	public function testTranslateDirectory()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->translateDirectory(),
-			$this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->translateDirectory(),
+			$router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
 	}
 
 	public function testIncludeFile()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->includeFile(),
-			$this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%/detail.php');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->includeFile(),
+			$router->server('DOCUMENT_ROOT') . '/categories/%VAR%/detail.php');
 	}
 
 	public function testExtension()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->extension(), 'json');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->extension(), 'json');
 	}
 
 	public function testVirtualUri()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->virtualUri(), '/categories/%VAR%/detail.php/foo/bar?foo=bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->virtualUri(), '/categories/%VAR%/detail.php/foo/bar?foo=bar');
 	}
 
 	public function testPhpSelf()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PHP_SELF'), '/categories/1/detail.php/foo/bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'), '/categories/1/detail.php/foo/bar');
 	}
 
 	public function testScriptName()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('SCRIPT_NAME'), '/categories/1/detail.php');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->server('SCRIPT_NAME'), '/categories/1/detail.php');
 	}
 
 	public function testScriptFileName()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'),
-			$this->router->server('DOCUMENT_ROOT') . '/categories/1/detail.php');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->server('SCRIPT_FILENAME'),
+			$router->server('DOCUMENT_ROOT') . '/categories/1/detail.php');
 	}
 
 	public function testPathInfo()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PATH_INFO'), '/foo/bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->server('PATH_INFO'), '/foo/bar');
 	}
 
 	public function testPathTranslated()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PATH_TRANSLATED'),
-			$this->router->server('DOCUMENT_ROOT') . '/foo/bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/detail.json/foo/bar?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->server('PATH_TRANSLATED'),
+			$router->server('DOCUMENT_ROOT') . '/foo/bar');
 	}
 
 	public function testIncludeDirectoryIndexWhenQueryStringAndFragmentIsSpecified()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/?foo=bar#1');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
-		$this->assertEquals($this->router->includeFile()            , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
-		$this->assertEquals($this->router->translateDirectory()     , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
-		$this->assertEquals($this->router->virtualUri()             , '/categories/%VAR%/index.php?foo=bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/?foo=bar#1');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
+		$this->assertEquals($router->virtualUri()             , '/categories/%VAR%/index.php?foo=bar');
 	}
 
 	public function testRequestUriWithSchemeAndHost()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', 'http://example.com/categories/1/?foo=bar#1');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
-		$this->assertEquals($this->router->includeFile()            , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
-		$this->assertEquals($this->router->translateDirectory()     , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
-		$this->assertEquals($this->router->virtualUri()             , '/categories/%VAR%/index.php?foo=bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', 'http://example.com/categories/1/?foo=bar#1');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
+		$this->assertEquals($router->virtualUri()             , '/categories/%VAR%/index.php?foo=bar');
 	}
 
 	public function testRequestUriWithSchemeAndHostAndPort()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', 'http://example.com:8080/categories/1/?foo=bar#1');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
-		$this->assertEquals($this->router->includeFile()            , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
-		$this->assertEquals($this->router->translateDirectory()     , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
-		$this->assertEquals($this->router->virtualUri()             , '/categories/%VAR%/index.php?foo=bar');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', 'http://example.com:8080/categories/1/?foo=bar#1');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
+		$this->assertEquals($router->virtualUri()             , '/categories/%VAR%/index.php?foo=bar');
 	}
 
 	public function testReguralizationOfPathContainingDoubleDot()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/../../categories/1/');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
-		$this->assertEquals($this->router->includeFile()            , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
-		$this->assertEquals($this->router->translateDirectory()     , $this->router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
-		$this->assertEquals($this->router->virtualUri()             , '/categories/%VAR%/index.php');
-		$this->assertEquals($this->router->parameter(0), '1');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/../../categories/1/');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/categories/1/index.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/categories/1/index.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%/index.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/categories/%VAR%');
+		$this->assertEquals($router->virtualUri()             , '/categories/%VAR%/index.php');
+		$this->assertEquals($router->parameter(0), '1');
 	}
 
 	public function testIncludeRootDirectoryIndexWhenRequestPathIsOutOfRoot()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/../../../');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/index.php');
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/index.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/index.php');
-		$this->assertEquals($this->router->includeFile()            , $this->router->server('DOCUMENT_ROOT') . '/index.php');
-		$this->assertEquals($this->router->translateDirectory()     , $this->router->server('DOCUMENT_ROOT'));
-		$this->assertEquals($this->router->virtualUri()             , '/index.php');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/../../../');
+		$router->prepare();
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/index.php');
+		$this->assertEquals($router->server('PHP_SELF'       ), '/index.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/index.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/index.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT'));
+		$this->assertEquals($router->virtualUri()             , '/index.php');
 	}
 
 	public function testMultipleSearchExtensions()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/test');
-		$this->router->prepare();
-		$this->assertEquals($this->router->config('searchExtensions', 'html,php')->prepare()->virtualUri(), '/test.html');
-		$this->assertEquals($this->router->config('searchExtensions', 'php,html')->prepare()->virtualUri(), '/test.php');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/test');
+		$router->prepare();
+		$this->assertEquals($router->config('searchExtensions', 'html,php')->prepare()->virtualUri(), '/test.html');
+		$this->assertEquals($router->config('searchExtensions', 'php,html')->prepare()->virtualUri(), '/test.php');
 	}
 
 	public function testDirectoryAndFilenameContainingDot()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/.foo.bar.baz/1/.foo.bar.baz');
-		$this->router->prepare();
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/.foo.bar.baz/1/.foo.bar.baz.php');
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/.foo.bar.baz/1/.foo.bar.baz.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/.foo.bar.baz/1/.foo.bar.baz.php');
-		$this->assertEquals($this->router->includeFile()            , $this->router->server('DOCUMENT_ROOT') . '/.foo.bar.baz/%VAR%/.foo.bar.baz.php');
-		$this->assertEquals($this->router->translateDirectory()     , $this->router->server('DOCUMENT_ROOT') . '/.foo.bar.baz/%VAR%');
-		$this->assertEquals($this->router->virtualUri()             , '/.foo.bar.baz/%VAR%/.foo.bar.baz.php');
-		$this->assertEquals($this->router->parameter(0), '1');
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/.foo.bar.baz/1/.foo.bar.baz');
+		$router->prepare();
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/.foo.bar.baz/1/.foo.bar.baz.php');
+		$this->assertEquals($router->server('PHP_SELF'       ), '/.foo.bar.baz/1/.foo.bar.baz.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/.foo.bar.baz/1/.foo.bar.baz.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/.foo.bar.baz/%VAR%/.foo.bar.baz.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/.foo.bar.baz/%VAR%');
+		$this->assertEquals($router->virtualUri()             , '/.foo.bar.baz/%VAR%/.foo.bar.baz.php');
+		$this->assertEquals($router->parameter(0), '1');
 	}
 
 	public function testOverwriteGlobals()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
-		$this->router->config('overwriteGlobals', true);
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
+		$router->config('overwriteGlobals', true);
 		$_SERVER = array();
-		$this->router->prepare();
-		$this->router->execute();
-		$this->assertEquals($this->router->server('PHP_SELF'       ), '/categories/1/modify.php/foo/bar');
-		$this->assertEquals($this->router->server('SCRIPT_NAME'    ), '/categories/1/modify.php');
-		$this->assertEquals($this->router->server('SCRIPT_FILENAME'), $this->router->server('DOCUMENT_ROOT') . '/categories/1/modify.php');
-		$this->assertEquals($this->router->server('PATH_INFO'      ), '/foo/bar');
-		$this->assertEquals($this->router->server('PATH_TRANSLATED'), $this->router->server('DOCUMENT_ROOT') . '/foo/bar');
-		$this->assertEquals($_SERVER['PHP_SELF'       ], $this->router->server('PHP_SELF'       ));
-		$this->assertEquals($_SERVER['SCRIPT_NAME'    ], $this->router->server('SCRIPT_NAME'    ));
-		$this->assertEquals($_SERVER['SCRIPT_FILENAME'], $this->router->server('SCRIPT_FILENAME'));
-		$this->assertEquals($_SERVER['PATH_INFO'      ], $this->router->server('PATH_INFO'      ));
-		$this->assertEquals($_SERVER['PATH_TRANSLATED'], $this->router->server('PATH_TRANSLATED'));
+		$router->prepare();
+		$router->execute();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/categories/1/modify.php/foo/bar');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/categories/1/modify.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/categories/1/modify.php');
+		$this->assertEquals($router->server('PATH_INFO'      ), '/foo/bar');
+		$this->assertEquals($router->server('PATH_TRANSLATED'), $router->server('DOCUMENT_ROOT') . '/foo/bar');
+		$this->assertEquals($_SERVER['PHP_SELF'       ], $router->server('PHP_SELF'       ));
+		$this->assertEquals($_SERVER['SCRIPT_NAME'    ], $router->server('SCRIPT_NAME'    ));
+		$this->assertEquals($_SERVER['SCRIPT_FILENAME'], $router->server('SCRIPT_FILENAME'));
+		$this->assertEquals($_SERVER['PATH_INFO'      ], $router->server('PATH_INFO'      ));
+		$this->assertEquals($_SERVER['PATH_TRANSLATED'], $router->server('PATH_TRANSLATED'));
 	}
 
 	public function testNotOverwriteGlobals()
 	{
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
-		$this->router->config('overwriteGlobals', false);
+		$router = new Router();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/categories/1/modify/foo/bar?foo=bar#1');
+		$router->config('overwriteGlobals', false);
 		$_SERVER = array();
-		$this->router->prepare();
-		$this->router->execute();
+		$router->prepare();
+		$router->execute();
 		$this->assertArrayNotHasKey('PHP_SELF'       , $_SERVER);
 		$this->assertArrayNotHasKey('SCRIPT_NAME'    , $_SERVER);
 		$this->assertArrayNotHasKey('SCRIPT_FILENAME', $_SERVER);
@@ -471,13 +491,14 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
 	public function testScriptPlacedDirectlyUnderOfDocumentRootCanBeInclude()
 	{
+		$router = new Router();
 		$this->script = $this->documentRoot . '/echo-test.php';
 		file_put_contents($this->script, '<?php echo "TEST";');
 		ob_start();
-		$this->router->server('DOCUMENT_ROOT', $this->documentRoot);
-		$this->router->server('REQUEST_URI', '/echo-test');
-		$this->router->prepare();
-		$this->router->execute();
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/echo-test');
+		$router->prepare();
+		$router->execute();
 		$this->assertEquals('TEST', ob_get_contents());
 		ob_end_clean();
 	}
