@@ -118,7 +118,9 @@ class Router
 			'parameterFilters'        => array(),
 		));
 		if (!empty($configurations)) {
-			$this->config->attributes($configurations);
+			foreach ($configurations as $name => $value) {
+				$this->config->offsetSet($name, $value);
+			}
 		}
 		$this->server = new Configuration(
 			array_fill_keys(self::$acceptServerVars, null)
@@ -155,31 +157,6 @@ class Router
 	}
 
 	/**
-	 * 引数なしの場合は全ての設定を配列で返します。
-	 * 引数ありの場合は全ての設定を引数の配列からセットして$thisを返します。
-	 *
-	 * @param array 設定の配列
-	 * @return mixed 設定の配列 または $this
-	 * @throws \InvalidArgumentException
-	 */
-	public function configurations()
-	{
-		switch (func_num_args()) {
-		case 0:
-			return $this->config->attributes();
-		case 1:
-			$configurations = func_get_arg(0);
-			if (!is_array($configurations)) {
-				throw new \InvalidArgumentException(
-					'The configurations is not Array.');
-			}
-			$this->config->attributes($configurations);
-			return $this;
-		}
-		throw new \InvalidArgumentException('Invalid arguments count.');
-	}
-
-	/**
 	 * 引数1つの場合は指定された設定の値を返します。
 	 * 引数2つの場合は指定された設置の値をセットして$thisを返します。
 	 *
@@ -195,7 +172,7 @@ class Router
 	{
 		switch (func_num_args()) {
 		case 1:
-			return $this->config->get($name);
+			return $this->config->offsetGet($name);
 		case 2:
 			$value = func_get_arg(1);
 			if (isset($value)) {
@@ -225,7 +202,7 @@ class Router
 					}
 					break;
 				}
-				$this->config->set($name, $value);
+				$this->config->offsetSet($name, $value);
 			}
 			return $this;
 		}
@@ -247,7 +224,7 @@ class Router
 	{
 		switch (func_num_args()) {
 		case 1:
-			return $this->server->get($name);
+			return $this->server->offsetGet($name);
 		case 2:
 			$value = func_get_arg(1);
 			if (isset($value)) {
@@ -272,7 +249,7 @@ class Router
 					}
 					break;
 				}
-				$this->server->set($name, $value);
+				$this->server->offsetSet($name, $value);
 			}
 			return $this;
 		}
@@ -477,7 +454,7 @@ class Router
 						$parameterType = substr($parameterSegment, strlen($parameterLeftDelimiter),
 							strlen($parameterSegment) - strlen($parameterLeftDelimiter) - strlen($parameterRightDelimiter)
 						);
-						$filters = $this->config->get('parameterFilters');
+						$filters = $this->config->offsetGet('parameterFilters');
 						// ユーザフィルタが定義されており、実行結果がNULL以外の場合は妥当なパラメータ値とする
 						if (array_key_exists($parameterType, $filters)) {
 							$parameterValue = $filters[$parameterType]($segment);
