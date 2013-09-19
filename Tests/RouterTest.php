@@ -168,6 +168,37 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$router->prepare();
 	}
 
+	public function testFallbackScript()
+	{
+		$router = new Router(array(
+			'fallbackScript' => '/temp/fallback.php',
+		));
+		$this->script = $this->documentRoot . DIRECTORY_SEPARATOR . 'temp' . DIRECTORY_SEPARATOR . 'fallback.php';
+		touch($this->script);
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/path/could/not/found');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/temp/fallback.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/temp/fallback.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/temp/fallback.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/temp/fallback.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/temp');
+		$this->assertEquals($router->virtualUri()             , '/temp/fallback.php');
+	}
+
+	/**
+	 * @expectedException \RuntimeException
+	 */
+	public function testPrepareRaiseExceptionWhenFallbackScriptCouldNotFound()
+	{
+		$router = new Router(array(
+			'fallbackScript' => '/fallback.php',
+		));
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/path/could/not/found');
+		$router->prepare();
+	}
+
 	public function testParameter()
 	{
 		$router = new Router();
@@ -492,7 +523,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	public function testScriptPlacedDirectlyUnderOfDocumentRootCanBeInclude()
 	{
 		$router = new Router();
-		$this->script = $this->documentRoot . '/echo-test.php';
+		$this->script = $this->documentRoot . DIRECTORY_SEPARATOR . 'echo-test.php';
 		file_put_contents($this->script, '<?php echo "TEST";');
 		ob_start();
 		$router->server('DOCUMENT_ROOT', $this->documentRoot);

@@ -56,32 +56,32 @@ use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
 $router = Router::instance(array(
-	'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
-	'searchExtensions'       => 'php',   // 読み込み対象スクリプトの拡張子を php と設定する
-	'overwriteGlobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
+    'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
+    'searchExtensions'       => 'php',   // 読み込み対象スクリプトの拡張子を php と設定する
+    'overwriteGlobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
 ));
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
 try {
 
-	$router->prepare()->execute();
+    $router->prepare()->execute();
 
 } catch (\Exception $e) {
 
-	$text = '500 Internal Server Error';
-	if ($e instanceof NotFoundException) {
-		$text = '404 Not Found';
-	}
+    $text = '500 Internal Server Error';
+    if ($e instanceof NotFoundException) {
+        $text = '404 Not Found';
+    }
 
-	if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
-		header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
-	}
+    if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+        header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+    }
 
-	echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
-		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
-		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
-	);
+    echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+    );
 }
 ```
 
@@ -134,35 +134,35 @@ use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
 $router = Router::instance(array(
-	'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
-	'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
-	'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
-	'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
+    'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
+    'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
+    'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
+    'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
 ));
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
 try {
 
-	$router->prepare()->execute();
+    $router->prepare()->execute();
 
 } catch (\Exception $e) {
 
-	$text = '500 Internal Server Error';
-	if ($e instanceof NotFoundException) {
-		$text = '404 Not Found';
-	} elseif ($e instanceof InvalidParameterException) {
-		$text = '400 Bad Request';
-	}
+    $text = '500 Internal Server Error';
+    if ($e instanceof NotFoundException) {
+        $text = '404 Not Found';
+    } elseif ($e instanceof InvalidParameterException) {
+        $text = '400 Bad Request';
+    }
 
-	if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
-		header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
-	}
+    if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+        header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+    }
 
-	echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
-		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
-		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
-	);
+    echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+    );
 ```
 
 ドキュメントルート以下に "/users/{%digit%}/index.php" というスクリプトが存在するとして…
@@ -193,51 +193,51 @@ use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
 $router = Router::instance(array(
-	'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
-	'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
-	'parameterFilters' => array(
-		// 独自のフィルタ "profile_id" を設定する
-		'profile_id' => function($value) {
-			if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
-				throw new InvalidParameterException('oh...');
-			}
-			return $value;
-		},
-		// 標準のフィルタ "digit" を上書き設定する
-		'digit' => function($value) {
-			if (!ctype_digit($value)) {
-				throw new InvalidParameterException('oh...');
-			}
-			return intval($value);
-		},
-	),
-	'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
-	'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
+    'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
+    'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
+    'parameterFilters' => array(
+        // 独自のフィルタ "profile_id" を設定する
+        'profile_id' => function($value) {
+            if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
+                throw new InvalidParameterException('oh...');
+            }
+            return $value;
+        },
+        // 標準のフィルタ "digit" を上書き設定する
+        'digit' => function($value) {
+            if (!ctype_digit($value)) {
+                throw new InvalidParameterException('oh...');
+            }
+            return intval($value);
+        },
+    ),
+    'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
+    'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
 ));
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
 try {
 
-	$router->prepare()->execute();
+    $router->prepare()->execute();
 
 } catch (\Exception $e) {
 
-	$text = '500 Internal Server Error';
-	if ($e instanceof NotFoundException) {
-		$text = '404 Not Found';
-	} elseif ($e instanceof InvalidParameterException) {
-		$text = '400 Bad Request';
-	}
+    $text = '500 Internal Server Error';
+    if ($e instanceof NotFoundException) {
+        $text = '404 Not Found';
+    } elseif ($e instanceof InvalidParameterException) {
+        $text = '400 Bad Request';
+    }
 
-	if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
-		header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
-	}
+    if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+        header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+    }
 
-	echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
-		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
-		, htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
-	);
+    echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+    );
 }
 ```
 
@@ -257,3 +257,43 @@ $user_id = $router->parameter(0); // (int) 1
 $profile_id = $router->parameter(1); // (string) 'k-holy'
 ```
 
+##fallbackScriptオプションを指定して、スクリプトが見つからない場合に代替スクリプトを読み込む
+
+ver 0.3.0より、スクリプトが見つからない場合にドキュメントルート以下の任意のパスに設置した代替スクリプトを読み込むための fallbackScript オプションを追加しました。
+
+###/__gateway.php
+```php
+<?php
+use Volcanus\Routing\Router;
+use Volcanus\Routing\Exception\NotFoundException;
+use Volcanus\Routing\Exception\InvalidParameterException;
+
+$router = Router::instance(array(
+    'fallbackScript' => '/path/to/fallback.php', // スクリプトが見つからない場合は ドキュメントルート/path/to/fallback.php を読み込む
+));
+
+$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
+
+try {
+
+    $router->prepare()->execute();
+
+} catch (\Exception $e) {
+
+    $text = '500 Internal Server Error';
+    if ($e instanceof NotFoundException) {
+        $text = '404 Not Found';
+    }
+
+    if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+        header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+    }
+
+    echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+    );
+}
+```
+
+上記の設定で、たとえば存在しないパス /path/not/found がリクエストされた場合、カレントディレクトリを /path/to に移動、 fallback.php を実行します。
