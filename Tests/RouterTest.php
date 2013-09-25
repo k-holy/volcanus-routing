@@ -18,18 +18,25 @@ use Volcanus\Routing\Router;
 class RouterTest extends \PHPUnit_Framework_TestCase
 {
 
-	private $script = null;
 	private $documentRoot = null;
+	private $tempDir = null;
 
 	public function setUp()
 	{
 		$this->documentRoot = realpath(__DIR__ . '/RouterTest');
+		$this->tempDir = realpath(__DIR__ . '/RouterTest/temp');
 	}
 
 	public function tearDown()
 	{
-		if (isset($this->script) && file_exists($this->script)) {
-			unlink($this->script);
+		$fi = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator($this->tempDir),
+			\RecursiveIteratorIterator::LEAVES_ONLY
+		);
+		foreach ($fi as $file) {
+			if ($file->isFile() && $file->getBaseName() !== '.gitkeep') {
+				unlink($file);
+			}
 		}
 	}
 
@@ -173,8 +180,8 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$router = new Router(array(
 			'fallbackScript' => '/temp/fallback.php',
 		));
-		$this->script = $this->documentRoot . DIRECTORY_SEPARATOR . 'temp' . DIRECTORY_SEPARATOR . 'fallback.php';
-		touch($this->script);
+		$script = $this->tempDir . DIRECTORY_SEPARATOR . 'fallback.php';
+		touch($script);
 		$router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$router->server('REQUEST_URI', '/path/could/not/found');
 		$router->prepare();
@@ -197,6 +204,29 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$router->server('REQUEST_URI', '/path/could/not/found');
 		$router->prepare();
+	}
+
+	public function testFallbackScriptBasename()
+	{
+		$router = new Router(array(
+			'fallbackScript' => 'fallback.php',
+		));
+		$subDir = $this->tempDir . DIRECTORY_SEPARATOR . 'sub';
+		$script =  $subDir . DIRECTORY_SEPARATOR . 'fallback.php';
+		file_put_contents($script, '<?php echo "TEST";');
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/temp/sub/not-found');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/temp/sub/fallback.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/temp/sub/fallback.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/temp/sub/fallback.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/temp/sub/fallback.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/temp/sub');
+		$this->assertEquals($router->virtualUri()             , '/temp/sub/fallback.php');
+		ob_start();
+		$router->execute();
+		$this->assertEquals('TEST', ob_get_contents());
+		ob_end_clean();
 	}
 
 	public function testParameter()
@@ -523,14 +553,15 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	public function testScriptPlacedDirectlyUnderOfDocumentRootCanBeInclude()
 	{
 		$router = new Router();
-		$this->script = $this->documentRoot . DIRECTORY_SEPARATOR . 'echo-test.php';
-		file_put_contents($this->script, '<?php echo "TEST";');
+		$script = $this->documentRoot . DIRECTORY_SEPARATOR . 'echo-test.php';
+		file_put_contents($script, '<?php echo "TEST";');
 		ob_start();
 		$router->server('DOCUMENT_ROOT', $this->documentRoot);
 		$router->server('REQUEST_URI', '/echo-test');
 		$router->prepare();
 		$router->execute();
 		$this->assertEquals('TEST', ob_get_contents());
+		unlink($script);
 		ob_end_clean();
 	}
 

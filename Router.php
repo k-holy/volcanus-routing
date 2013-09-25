@@ -359,13 +359,6 @@ class Router
 		}
 
 		$fallbackScript = $this->config['fallbackScript'];
-		if (isset($fallbackScript)) {
-			if (!file_exists($documentRoot . $fallbackScript)) {
-				throw new \RuntimeException(
-					sprintf('fallbackScript "%s" could not found in DocumentRoot "%s"', $fallbackScript, $documentRoot)
-				);
-			}
-		}
 
 		preg_match(self::$requestUriPattern, $requestUri, $matches);
 
@@ -381,6 +374,7 @@ class Router
 			'parameterRightDelimiter' => $this->config['parameterRightDelimiter'],
 			'searchExtensions'        => $this->config['searchExtensions'],
 			'parameterFilters'        => $this->config['parameterFilters'],
+			'fallbackScript'          => $this->config['fallbackScript'],
 		));
 
 		try {

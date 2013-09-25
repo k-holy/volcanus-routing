@@ -296,4 +296,44 @@ try {
 }
 ```
 
-上記の設定で、たとえば存在しないパス /path/not/found がリクエストされた場合、カレントディレクトリを /path/to に移動、 fallback.php を実行します。
+上記の設定で、たとえば存在しないパス /path/not/found がリクエストされた場合、カレントディレクトリを /path/to に移動して fallback.php を実行します。
+
+
+fallbackScript オプションをファイル名で指定した場合、リクエストされたディレクトリ内にそのファイルがあれば読み込みます。
+
+###/__gateway.php
+```php
+<?php
+use Volcanus\Routing\Router;
+use Volcanus\Routing\Exception\NotFoundException;
+use Volcanus\Routing\Exception\InvalidParameterException;
+
+$router = Router::instance(array(
+    'fallbackScript' => 'fallback.php', // スクリプトが見つからない場合は fallback.php があれば読み込む
+));
+
+$router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
+
+try {
+
+    $router->prepare()->execute();
+
+} catch (\Exception $e) {
+
+    $text = '500 Internal Server Error';
+    if ($e instanceof NotFoundException) {
+        $text = '404 Not Found';
+    }
+
+    if (!headers_sent() && isset($_SERVER['SERVER_PROTOCOL'])) {
+        header(sprintf('%s %s', $_SERVER['SERVER_PROTOCOL'], $text));
+    }
+
+    echo sprintf('<html><head><title>Error %s</title></head><body><h1>%s</h1></body></html>'
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+        , htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+    );
+}
+```
+
+上記の設定で、たとえば存在しないパス /path/not/found がリクエストされ、/path/not/found.php が存在せず /path/not/fallback.php が存在する場合、カレントディレクトリを /path/not に移動して fallback.php を実行します。

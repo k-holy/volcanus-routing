@@ -48,6 +48,7 @@ class Parser
 			'parameterRightDelimiter' => null,
 			'searchExtensions'        => null,
 			'parameterFilters'        => null,
+			'fallbackScript'          => null,
 		);
 		$this->results = array(
 			'translateDirectory' => null,
@@ -98,6 +99,8 @@ class Parser
 		if (is_string($searchExtensions)) {
 			$searchExtensions = explode(',', $searchExtensions);
 		}
+
+		$fallbackScript = $this->config['fallbackScript'];
 
 		$translateDirectory = '';
 		$scriptName = '';
@@ -198,6 +201,17 @@ class Parser
 					$scriptName .= '/' . $segment;
 					$parameters[] = $parameterValue;
 					continue;
+				}
+			}
+
+			// fallbackScriptがファイル名で指定されている場合、現在のディレクトリ以下のファイルを検索
+			if (isset($fallbackScript) && 0 !== strpos($fallbackScript, '/')) {
+				$filename = $this->findFile($documentRoot . $translateDirectory,
+					$fallbackScript);
+				if (isset($filename)) {
+					$scriptName .= '/' . $filename;
+					$fileSegmentIndex = $index;
+					break;
 				}
 			}
 
