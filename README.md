@@ -1,5 +1,8 @@
 #Volcanus_Routing
 
+[![Latest Stable Version](https://poser.pugx.org/volcanus/routing/v/stable.png)](https://packagist.org/packages/volcanus/routing)
+[![Build Status](https://travis-ci.org/k-holy/volcanus-routing.png?branch=master)](https://travis-ci.org/k-holy/volcanus-routing)
+
 ページコントローラ(PageController)パターンで「きれいなURI」を実現するためのライブラリです。
 
 フロントコントローラ(FrontController)パターンにおいてRouterと呼ばれるクラスは、
