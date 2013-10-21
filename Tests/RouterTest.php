@@ -102,6 +102,9 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 	public function testSetDocumentRootNormalizeDirectorySeparator()
 	{
 		$router = new Router();
+		if (DIRECTORY_SEPARATOR === '/') {
+			$this->markTestSkipped();
+		}
 		$router->server('DOCUMENT_ROOT', 'C:\path\to\document\root');
 		$this->assertEquals('C:/path/to/document/root', $router->server('DOCUMENT_ROOT'));
 	}
