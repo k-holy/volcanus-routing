@@ -2,6 +2,7 @@
 
 [![Latest Stable Version](https://poser.pugx.org/volcanus/routing/v/stable.png)](https://packagist.org/packages/volcanus/routing)
 [![Build Status](https://travis-ci.org/k-holy/volcanus-routing.png?branch=master)](https://travis-ci.org/k-holy/volcanus-routing)
+[![Coverage Status](https://coveralls.io/repos/k-holy/volcanus-routing/badge.png?branch=master)](https://coveralls.io/r/k-holy/volcanus-routing?branch=master)
 
 ページコントローラ(PageController)パターンで「きれいなURI」を実現するためのライブラリです。
 
