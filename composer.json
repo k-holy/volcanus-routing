@@ -12,9 +12,8 @@
         }
     ],
     "autoload": {
-        "psr-0": { "Volcanus\\Routing": "." }
+        "psr-0": { "Volcanus\\Routing": "src/" }
     },
-    "target-dir": "Volcanus/Routing",
     "require": {
         "php": ">=5.3.3"
     },
