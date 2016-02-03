@@ -587,4 +587,20 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals($router->parameters(), array('1', '2'));
 	}
 
+	public function testFallbackScriptAsFileWhenLastSegmentIsParameterDirectory()
+	{
+		$router = new Router(array(
+			'fallbackScript' => 'index.php',
+		));
+		$router->server('DOCUMENT_ROOT', $this->documentRoot);
+		$router->server('REQUEST_URI', '/organizations/registration?foo=bar');
+		$router->prepare();
+		$this->assertEquals($router->server('PHP_SELF'       ), '/organizations/index.php');
+		$this->assertEquals($router->server('SCRIPT_NAME'    ), '/organizations/index.php');
+		$this->assertEquals($router->server('SCRIPT_FILENAME'), $router->server('DOCUMENT_ROOT') . '/organizations/index.php');
+		$this->assertEquals($router->includeFile()            , $router->server('DOCUMENT_ROOT') . '/organizations/index.php');
+		$this->assertEquals($router->translateDirectory()     , $router->server('DOCUMENT_ROOT') . '/organizations');
+		$this->assertEquals($router->virtualUri()             , '/organizations/index.php?foo=bar');
+	}
+
 }
