@@ -2,7 +2,7 @@
 /**
  * Volcanus libraries for PHP
  *
- * @copyright 2011-2013 k-holy <k.holy74@gmail.com>
+ * @copyright k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
  */
 
@@ -14,7 +14,6 @@ use Volcanus\Routing\Exception\InvalidParameterException;
 /**
  * Parser
  *
- * @package Volcanus\Routing
  * @author k.holy74@gmail.com
  */
 class Parser
