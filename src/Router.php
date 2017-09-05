@@ -19,7 +19,7 @@ class Router
 {
 
 	/**
-	 * @var Router Singletonインスタンス
+	 * @var \Volcanus\Routing\Router Singletonインスタンス
 	 */
 	private static $instance = null;
 
@@ -39,7 +39,7 @@ class Router
 	private $server;
 
 	/**
-	 * @var Parser
+	 * @var \Volcanus\Routing\Parser
 	 */
 	private $parser;
 
@@ -76,18 +76,19 @@ class Router
 	/**
 	 * constructor
 	 *
-	 * @param array 設定オプション
+	 * @param array $configurations 設定オプション
 	 */
 	public function __construct(array $configurations = array())
 	{
 		$this->initialize($configurations);
 	}
 
-	/**
-	 * オブジェクトを初期化します。
-	 *
-	 * @param array 設定オプション
-	 */
+    /**
+     * オブジェクトを初期化します。
+     *
+     * @param array $configurations 設定オプション
+     * @return $this
+     */
 	public function initialize(array $configurations = array())
 	{
 		$this->config = array(
@@ -126,8 +127,8 @@ class Router
 	/**
 	 * Singletonインスタンスを返します。
 	 *
-	 * @param array デフォルトの設定
-	 * @return object Router
+	 * @param array $configurations デフォルトの設定
+	 * @return \Volcanus\Routing\Router
 	 */
 	public static function instance(array $configurations = array())
 	{
@@ -153,8 +154,9 @@ class Router
 	 * string searchExtensions       : ルーティングによる読み込み対象ファイルの拡張子
 	 * bool   overwriteGlobals       : $_SERVER グローバル変数をフィールドに含まれる囲み文字のエスケープ文字 ※1文字のみ対応
 	 *
-	 * @param string 設定名
+	 * @param string $name 設定名
 	 * @return mixed 設定値 または $this
+     *
 	 * @throws \InvalidArgumentException
 	 */
 	public function config($name)
@@ -211,8 +213,9 @@ class Router
 	 * REQUEST_URIが不正な場合は値を受け付けず例外をスローします。
 	 * DOCUMENT_ROOTは値に含まれるディレクトリ区切り文字を / に統一します。
 	 *
-	 * @param string 環境変数名
+	 * @param string $name 環境変数名
 	 * @return mixed 環境変数値 または $this
+     *
 	 * @throws \InvalidArgumentException
 	 */
 	public function server($name)
@@ -254,7 +257,7 @@ class Router
 	/**
 	 * $_SERVERグローバル変数から環境変数を取り込みます。
 	 *
-	 * @return object Router
+	 * @return $this
 	 */
 	public function importGlobals()
 	{
@@ -281,8 +284,8 @@ class Router
 	/**
 	 * 指定されたパスパラメータの値を返します。
 	 *
-	 * @param int パラメータのインデックス
-	 * @param mixed デフォルト値
+	 * @param int $index パラメータのインデックス
+	 * @param mixed $defaultValue デフォルト値
 	 * @return mixed パラメータ値
 	 */
 	public function parameter($index, $defaultValue = null)
@@ -336,11 +339,12 @@ class Router
 	/**
 	 * リクエストURIを解析し、ルーティングの実行を準備します。
 	 *
-	 * @param string requestURI
-	 * @return object Router
+	 * @param string $requestUri リクエストURI
+	 * @return $this
+     *
 	 * @throws \RuntimeException
-	 * @throws Exception\NotFoundException
-	 * @throws Exception\InvalidParameterException
+	 * @throws \Volcanus\Routing\Exception\NotFoundException
+	 * @throws \Volcanus\Routing\Exception\InvalidParameterException
 	 */
 	public function prepare($requestUri = null)
 	{
@@ -364,6 +368,7 @@ class Router
 
 		$requestPath = (isset($matches[1])) ? $matches[1] : '';
 		$queryString = (isset($matches[2])) ? $matches[2] : '';
+        /** @noinspection PhpUnusedLocalVariableInspection */
 		$fragment    = (isset($matches[3])) ? $matches[3] : '';
 
 		// リクエストパスの解析はParserクラスに委譲
@@ -428,8 +433,7 @@ class Router
 	 * overwriteGlobalsオプションが有効な場合、$_SERVERグローバル変数を
 	 * serverの値で上書きします。
 	 *
-	 * @param string requestURI
-	 * @return string Router
+	 * @param string $requestUri requestURI
 	 */
 	public function execute($requestUri = null)
 	{
@@ -442,13 +446,14 @@ class Router
 		if (isset($this->translateDirectory)) {
 			chdir($this->translateDirectory);
 		}
+        /** @noinspection PhpIncludeInspection */
 		include $this->includeFile;
 	}
 
 	/**
 	 * 環境変数を$_SERVERグローバル変数に上書きします。
 	 *
-	 * @return object Router
+	 * @return $this
 	 */
 	private function overwriteGlobals()
 	{
