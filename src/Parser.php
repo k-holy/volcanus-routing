@@ -5,6 +5,7 @@
  * @copyright 2011-2013 k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
  */
+
 namespace Volcanus\Routing;
 
 use Volcanus\Routing\Exception\NotFoundException;
@@ -19,25 +20,25 @@ use Volcanus\Routing\Exception\InvalidParameterException;
 class Parser
 {
 
-	/**
-	 * @var array 設定値
-	 */
-	private $config;
+    /**
+     * @var array 設定値
+     */
+    private $config;
 
-	/**
-	 * @var array パース結果
-	 */
-	private $results;
+    /**
+     * @var array パース結果
+     */
+    private $results;
 
     /**
      * constructor
      *
      * @param array $configurations 設定オプション
      */
-	public function __construct(array $configurations = array())
-	{
-		$this->initialize($configurations);
-	}
+    public function __construct(array $configurations = [])
+    {
+        $this->initialize($configurations);
+    }
 
     /**
      * オブジェクトを初期化します。
@@ -45,296 +46,296 @@ class Parser
      * @param array $configurations 設定オプション
      * @return $this
      */
-	public function initialize(array $configurations = array())
-	{
-		$this->config = array(
-			'documentRoot'            => null,
-			'parameterDirectoryName'  => null,
-			'parameterLeftDelimiter'  => null,
-			'parameterRightDelimiter' => null,
-			'searchExtensions'        => null,
-			'parameterFilters'        => null,
-			'fallbackScript'          => null,
-		);
-		$this->results = array(
-			'translateDirectory' => null,
-			'scriptName'         => null,
-			'filename'           => null,
-			'pathInfo'           => null,
-			'extension'          => null,
-			'parameters'         => array(),
-		);
-		if (!empty($configurations)) {
-			$this->config = array_replace($this->config, $configurations);
-		}
-		return $this;
-	}
+    public function initialize(array $configurations = [])
+    {
+        $this->config = [
+            'documentRoot' => null,
+            'parameterDirectoryName' => null,
+            'parameterLeftDelimiter' => null,
+            'parameterRightDelimiter' => null,
+            'searchExtensions' => null,
+            'parameterFilters' => null,
+            'fallbackScript' => null,
+        ];
+        $this->results = [
+            'translateDirectory' => null,
+            'scriptName' => null,
+            'filename' => null,
+            'pathInfo' => null,
+            'extension' => null,
+            'parameters' => [],
+        ];
+        if (!empty($configurations)) {
+            $this->config = array_replace($this->config, $configurations);
+        }
+        return $this;
+    }
 
-	/**
-	 * 全てのパース結果を配列で返します。
-	 *
-	 * @return array パース結果の配列
-	 */
-	public function results()
-	{
-		return $this->results;
-	}
-
-	/**
-	 * パスを解析し、ルーティングの実行を準備します。
-	 *
-	 * @param string $path リクエストURI
-	 * @return array パース結果
+    /**
+     * 全てのパース結果を配列で返します。
      *
-	 * @throws \RuntimeException
-	 * @throws \Volcanus\Routing\Exception\NotFoundException
-	 * @throws \Volcanus\Routing\Exception\InvalidParameterException
-	 */
-	public function parse($path)
-	{
+     * @return array パース結果の配列
+     */
+    public function results()
+    {
+        return $this->results;
+    }
 
-		$documentRoot = $this->config['documentRoot'];
+    /**
+     * パスを解析し、ルーティングの実行を準備します。
+     *
+     * @param string $path リクエストURI
+     * @return array パース結果
+     *
+     * @throws \RuntimeException
+     * @throws \Volcanus\Routing\Exception\NotFoundException
+     * @throws \Volcanus\Routing\Exception\InvalidParameterException
+     */
+    public function parse($path)
+    {
 
-		$parameterDirectoryName = $this->config['parameterDirectoryName'];
+        $documentRoot = $this->config['documentRoot'];
 
-		// パラメータの左デリミタと右デリミタの両方が指定されている場合のみ検索
-		$searchParameter = ($this->config['parameterLeftDelimiter'] !== null && $this->config['parameterRightDelimiter'] !== null);
+        $parameterDirectoryName = $this->config['parameterDirectoryName'];
 
-		$searchExtensions = $this->config['searchExtensions'];
-		if (is_string($searchExtensions)) {
-			$searchExtensions = explode(',', $searchExtensions);
-		}
+        // パラメータの左デリミタと右デリミタの両方が指定されている場合のみ検索
+        $searchParameter = ($this->config['parameterLeftDelimiter'] !== null && $this->config['parameterRightDelimiter'] !== null);
 
-		$fallbackScript = $this->config['fallbackScript'];
+        $searchExtensions = $this->config['searchExtensions'];
+        if (is_string($searchExtensions)) {
+            $searchExtensions = explode(',', $searchExtensions);
+        }
 
-		$translateDirectory = '';
-		$scriptName = '';
-		$filename = null;
-		$fileSegmentIndex = -1;
-		$extension = null;
-		$parameters = array();
+        $fallbackScript = $this->config['fallbackScript'];
 
-		$segments = $this->parseRequestPath($path);
-		$segmentCount = count($segments);
+        $translateDirectory = '';
+        $scriptName = '';
+        $filename = null;
+        $fileSegmentIndex = -1;
+        $extension = null;
+        $parameters = [];
 
-		foreach ($segments as $index => $segment) {
+        $segments = $this->parseRequestPath($path);
+        $segmentCount = count($segments);
 
-			// セグメント内の . を展開
-			$pos = strrpos($segment, '.');
-			if ($pos !== false) {
-				$filename = $this->findFile($documentRoot . $translateDirectory, $segment);
-				if ($filename !== null) {
-					$scriptName .= '/' . $filename;
-					$fileSegmentIndex = $index;
-					break;
-				}
-				$basename = substr($segment, 0, $pos);
-				$ext = substr($segment, $pos + 1);
-				if (!empty($searchExtensions) &&
-					!in_array($ext, $searchExtensions)
-				) {
-					$filename = $this->findFile($documentRoot . $translateDirectory, $basename, $searchExtensions);
-					if ($filename !== null) {
-						$scriptName .= '/' . $filename;
-						$fileSegmentIndex = $index;
-						$extension = $ext;
-						break;
-					}
-				}
-			}
+        foreach ($segments as $index => $segment) {
 
-			// 実ディレクトリがあれば次のセグメントへ
-			if (is_dir($documentRoot . $translateDirectory . '/' . $segment)) {
-				$scriptName .= '/' . $segment;
-				$translateDirectory .= '/' . $segment;
-				continue;
-			}
+            // セグメント内の . を展開
+            $pos = strrpos($segment, '.');
+            if ($pos !== false) {
+                $filename = $this->findFile($documentRoot . $translateDirectory, $segment);
+                if ($filename !== null) {
+                    $scriptName .= '/' . $filename;
+                    $fileSegmentIndex = $index;
+                    break;
+                }
+                $basename = substr($segment, 0, $pos);
+                $ext = substr($segment, $pos + 1);
+                if (!empty($searchExtensions) &&
+                    !in_array($ext, $searchExtensions)
+                ) {
+                    $filename = $this->findFile($documentRoot . $translateDirectory, $basename, $searchExtensions);
+                    if ($filename !== null) {
+                        $scriptName .= '/' . $filename;
+                        $fileSegmentIndex = $index;
+                        $extension = $ext;
+                        break;
+                    }
+                }
+            }
 
-			// 実ファイルがあれば終了
-			$filename = $this->findFile($documentRoot . $translateDirectory, $segment, $searchExtensions);
-			if ($filename !== null) {
-				$scriptName .= '/' . $filename;
-				$fileSegmentIndex = $index;
-				break;
-			}
+            // 実ディレクトリがあれば次のセグメントへ
+            if (is_dir($documentRoot . $translateDirectory . '/' . $segment)) {
+                $scriptName .= '/' . $segment;
+                $translateDirectory .= '/' . $segment;
+                continue;
+            }
 
-			// パラメータディレクトリがあれば次のセグメントへ
-			if (is_dir($documentRoot . $translateDirectory . '/' .
-				$parameterDirectoryName)
-			) {
-				$translateDirectory .= '/' . $parameterDirectoryName;
-				$scriptName .= '/' . $segment;
-				$parameters[] = $segment;
-				continue;
-			}
+            // 実ファイルがあれば終了
+            $filename = $this->findFile($documentRoot . $translateDirectory, $segment, $searchExtensions);
+            if ($filename !== null) {
+                $scriptName .= '/' . $filename;
+                $fileSegmentIndex = $index;
+                break;
+            }
 
-			// デリミタでパラメータディレクトリを検索
-			if ($searchParameter) {
-				$values = $this->getParameter($documentRoot . $translateDirectory, $segment);
-				if ($values !== false) {
-					if (!isset($values[0]) || !isset($values[1])) {
-						throw new InvalidParameterException(
-							sprintf('The parameter of the segment in Uri\'s path "%s" is not valid in requestPath "%s".', $segment, $path));
-					}
-					$translateDirectory .= '/' . $values[1];
-					$scriptName .= '/' . $segment;
-					$parameters[] = $values[0];
-					continue;
-				}
-			}
+            // パラメータディレクトリがあれば次のセグメントへ
+            if (is_dir($documentRoot . $translateDirectory . '/' .
+                $parameterDirectoryName)
+            ) {
+                $translateDirectory .= '/' . $parameterDirectoryName;
+                $scriptName .= '/' . $segment;
+                $parameters[] = $segment;
+                continue;
+            }
 
-			// fallbackScriptがファイル名で指定されている場合、現在のディレクトリから検索
-			if ($fallbackScript !== null && 0 !== strpos($fallbackScript, '/')) {
-				$filename = $this->findFile($documentRoot . $translateDirectory, $fallbackScript);
-				if ($filename !== null) {
-					$scriptName .= '/' . $filename;
-					$fileSegmentIndex = $index;
-					break;
-				}
-			}
+            // デリミタでパラメータディレクトリを検索
+            if ($searchParameter) {
+                $values = $this->getParameter($documentRoot . $translateDirectory, $segment);
+                if ($values !== false) {
+                    if (!isset($values[0]) || !isset($values[1])) {
+                        throw new InvalidParameterException(
+                            sprintf('The parameter of the segment in Uri\'s path "%s" is not valid in requestPath "%s".', $segment, $path));
+                    }
+                    $translateDirectory .= '/' . $values[1];
+                    $scriptName .= '/' . $segment;
+                    $parameters[] = $values[0];
+                    continue;
+                }
+            }
 
-			throw new NotFoundException(
-				sprintf('The file that corresponds to the segment of Uri\'s path "%s" is not found in requestPath "%s".', $segment, $path));
-		}
+            // fallbackScriptがファイル名で指定されている場合、現在のディレクトリから検索
+            if ($fallbackScript !== null && 0 !== strpos($fallbackScript, '/')) {
+                $filename = $this->findFile($documentRoot . $translateDirectory, $fallbackScript);
+                if ($filename !== null) {
+                    $scriptName .= '/' . $filename;
+                    $fileSegmentIndex = $index;
+                    break;
+                }
+            }
 
-		$translateDirectory = rtrim($translateDirectory, '/');
-		$scriptName = rtrim($scriptName, '/');
+            throw new NotFoundException(
+                sprintf('The file that corresponds to the segment of Uri\'s path "%s" is not found in requestPath "%s".', $segment, $path));
+        }
 
-		// ディレクトリのみでファイル名がない場合
-		if ($filename === null) {
-			$filename = $this->findFile($documentRoot . $translateDirectory, 'index', array('php', 'html'));
-			if ($filename !== null) {
-				$fileSegmentIndex = $segmentCount - 1;
-				$scriptName .= (strrpos($scriptName, '/') === strlen($scriptName)) ? $filename : '/' . $filename;
-			}
-		}
+        $translateDirectory = rtrim($translateDirectory, '/');
+        $scriptName = rtrim($scriptName, '/');
 
-		if ($filename === null) {
-			// fallbackScriptがファイル名で指定され、かつ末尾がパラメータディレクトリの場合、ひとつ前のセグメントから検索
-			if ($fallbackScript !== null && 0 !== strpos($fallbackScript, '/') && $parameterDirectoryName !== null) {
-				$lastSegmentIndex = strrpos($translateDirectory, '/');
-				if (substr($translateDirectory, $lastSegmentIndex + 1) === $parameterDirectoryName) {
-					$_translateDirectory = substr($translateDirectory, 0, $lastSegmentIndex);
-					$filename = $this->findFile($documentRoot . $_translateDirectory, $fallbackScript);
-					if ($filename !== null) {
-						$translateDirectory = $_translateDirectory;
-						$fileSegmentIndex = $segmentCount - 1;
-						$scriptName = substr($scriptName, 0, strrpos($scriptName, '/'));
-						$scriptName .= (strrpos($scriptName, '/') === strlen($scriptName)) ? $filename : '/' . $filename;
-					}
-				}
-			}
-		}
+        // ディレクトリのみでファイル名がない場合
+        if ($filename === null) {
+            $filename = $this->findFile($documentRoot . $translateDirectory, 'index', ['php', 'html']);
+            if ($filename !== null) {
+                $fileSegmentIndex = $segmentCount - 1;
+                $scriptName .= (strrpos($scriptName, '/') === strlen($scriptName)) ? $filename : '/' . $filename;
+            }
+        }
 
-		if ($filename === null) {
-			throw new NotFoundException(
-				sprintf('The file that corresponds to the Uri\'s path "%s" is not found.', $path));
-		}
+        if ($filename === null) {
+            // fallbackScriptがファイル名で指定され、かつ末尾がパラメータディレクトリの場合、ひとつ前のセグメントから検索
+            if ($fallbackScript !== null && 0 !== strpos($fallbackScript, '/') && $parameterDirectoryName !== null) {
+                $lastSegmentIndex = strrpos($translateDirectory, '/');
+                if (substr($translateDirectory, $lastSegmentIndex + 1) === $parameterDirectoryName) {
+                    $_translateDirectory = substr($translateDirectory, 0, $lastSegmentIndex);
+                    $filename = $this->findFile($documentRoot . $_translateDirectory, $fallbackScript);
+                    if ($filename !== null) {
+                        $translateDirectory = $_translateDirectory;
+                        $fileSegmentIndex = $segmentCount - 1;
+                        $scriptName = substr($scriptName, 0, strrpos($scriptName, '/'));
+                        $scriptName .= (strrpos($scriptName, '/') === strlen($scriptName)) ? $filename : '/' . $filename;
+                    }
+                }
+            }
+        }
 
-		// @see RFC 3875 Section 4.1. Request Meta-Variables
-		$pathInfo = '';
-		for ($i = $fileSegmentIndex + 1; $i < $segmentCount; $i++) {
-			$pathInfo .= '/' . $segments[$i];
-		}
+        if ($filename === null) {
+            throw new NotFoundException(
+                sprintf('The file that corresponds to the Uri\'s path "%s" is not found.', $path));
+        }
 
-		$this->results['translateDirectory'] = $translateDirectory;
-		$this->results['scriptName'] = $scriptName;
-		$this->results['filename'] = $filename;
-		$this->results['pathInfo'] = $pathInfo;
-		$this->results['extension'] = $extension;
-		$this->results['parameters'] = $parameters;
+        // @see RFC 3875 Section 4.1. Request Meta-Variables
+        $pathInfo = '';
+        for ($i = $fileSegmentIndex + 1; $i < $segmentCount; $i++) {
+            $pathInfo .= '/' . $segments[$i];
+        }
 
-		return $this->results;
-	}
+        $this->results['translateDirectory'] = $translateDirectory;
+        $this->results['scriptName'] = $scriptName;
+        $this->results['filename'] = $filename;
+        $this->results['pathInfo'] = $pathInfo;
+        $this->results['extension'] = $extension;
+        $this->results['parameters'] = $parameters;
 
-	/**
-	 * パスに含まれる.および..を展開し、ルートからのセグメントの配列を返します。
-	 *
-	 * @param string $path パス
-	 * @return array セグメントの配列
-	 */
-	private function parseRequestPath($path)
-	{
-		$segments = array();
-		$count = 0;
-		foreach (explode('/', $path) as $segment) {
-			if (strcmp($segment, '.') === 0) {
-				continue;
-			}
-			if (strcmp($segment, '..') === 0) {
-				if ($count >= 2) {
-					array_pop($segments);
-					$count--;
-				}
-				continue;
-			}
-			$segments[] = $segment;
-			$count++;
-		}
-		array_shift($segments);
-		return $segments;
-	}
+        return $this->results;
+    }
 
-	/**
-	 * ディレクトリに、指定された名前および拡張子のファイルがあれば、そのファイル名を返します。
-	 *
-	 * @param string $dir ディレクトリ
-	 * @param string $filename ファイル名
-	 * @param array $extensions 検索する拡張子のリスト
-	 * @return string|NULL ファイル名またはNULL
-	 */
-	private function findFile($dir, $filename, $extensions = array())
-	{
-		if (!empty($extensions)) {
-			foreach ($extensions as $extension) {
-				$path = $dir . '/' . $filename . '.'. $extension;
-				if (file_exists($path) && is_file($path)) {
-					return $filename . '.' . $extension;
-				}
-			}
-		}
-		$path = $dir . '/' . $filename;
-		return (file_exists($path) && is_file($path)) ? $filename : null;
-	}
+    /**
+     * パスに含まれる.および..を展開し、ルートからのセグメントの配列を返します。
+     *
+     * @param string $path パス
+     * @return array セグメントの配列
+     */
+    private function parseRequestPath($path)
+    {
+        $segments = [];
+        $count = 0;
+        foreach (explode('/', $path) as $segment) {
+            if (strcmp($segment, '.') === 0) {
+                continue;
+            }
+            if (strcmp($segment, '..') === 0) {
+                if ($count >= 2) {
+                    array_pop($segments);
+                    $count--;
+                }
+                continue;
+            }
+            $segments[] = $segment;
+            $count++;
+        }
+        array_shift($segments);
+        return $segments;
+    }
 
-	/**
-	 * セグメントからパラメータを取得して返します。
-	 *
-	 * @param string $dir ディレクトリ
-	 * @param string $segment セグメント
-	 * @return array|false
-	 */
-	private function getParameter($dir, $segment)
-	{
-		$pattern = $dir . '/' . sprintf('%s*%s', $this->config['parameterLeftDelimiter'], $this->config['parameterRightDelimiter']);
-		$dirs = glob($pattern, GLOB_ONLYDIR);
-		if (count($dirs) >= 1) {
-			$parameterValue = null;
-			$parameterSegment = null;
-			foreach ($dirs as $dir) {
-				$parameterSegment = substr($dir, strrpos($dir, '/') + 1);
-				$parameterType = substr($parameterSegment, strlen($this->config['parameterLeftDelimiter']),
-					strlen($parameterSegment) - strlen($this->config['parameterLeftDelimiter']) - strlen($this->config['parameterRightDelimiter'])
-				);
-				$filters = $this->config['parameterFilters'];
-				// ユーザフィルタが定義されており、実行結果がNULL以外の場合は妥当なパラメータ値とする
-				if (array_key_exists($parameterType, $filters)) {
-					$parameterValue = $filters[$parameterType]($segment);
-					if ($parameterValue !== null) {
-						break;
-					}
-				// ユーザフィルタが未定義かつCtype関数に合致すれば妥当なパラメータ値とする
-				} elseif (is_callable('ctype_' . $parameterType)) {
-					$filter = 'ctype_' . $parameterType;
-					if (call_user_func($filter, $segment)) {
-						$parameterValue = $segment;
-						break;
-					}
-				}
-			}
-			return array($parameterValue, $parameterSegment);
-		}
-		return false;
-	}
+    /**
+     * ディレクトリに、指定された名前および拡張子のファイルがあれば、そのファイル名を返します。
+     *
+     * @param string $dir ディレクトリ
+     * @param string $filename ファイル名
+     * @param array $extensions 検索する拡張子のリスト
+     * @return string|NULL ファイル名またはNULL
+     */
+    private function findFile($dir, $filename, $extensions = [])
+    {
+        if (!empty($extensions)) {
+            foreach ($extensions as $extension) {
+                $path = $dir . '/' . $filename . '.' . $extension;
+                if (file_exists($path) && is_file($path)) {
+                    return $filename . '.' . $extension;
+                }
+            }
+        }
+        $path = $dir . '/' . $filename;
+        return (file_exists($path) && is_file($path)) ? $filename : null;
+    }
+
+    /**
+     * セグメントからパラメータを取得して返します。
+     *
+     * @param string $dir ディレクトリ
+     * @param string $segment セグメント
+     * @return array|false
+     */
+    private function getParameter($dir, $segment)
+    {
+        $pattern = $dir . '/' . sprintf('%s*%s', $this->config['parameterLeftDelimiter'], $this->config['parameterRightDelimiter']);
+        $dirs = glob($pattern, GLOB_ONLYDIR);
+        if (count($dirs) >= 1) {
+            $parameterValue = null;
+            $parameterSegment = null;
+            foreach ($dirs as $dir) {
+                $parameterSegment = substr($dir, strrpos($dir, '/') + 1);
+                $parameterType = substr($parameterSegment, strlen($this->config['parameterLeftDelimiter']),
+                    strlen($parameterSegment) - strlen($this->config['parameterLeftDelimiter']) - strlen($this->config['parameterRightDelimiter'])
+                );
+                $filters = $this->config['parameterFilters'];
+                // ユーザフィルタが定義されており、実行結果がNULL以外の場合は妥当なパラメータ値とする
+                if (array_key_exists($parameterType, $filters)) {
+                    $parameterValue = $filters[$parameterType]($segment);
+                    if ($parameterValue !== null) {
+                        break;
+                    }
+                    // ユーザフィルタが未定義かつCtype関数に合致すれば妥当なパラメータ値とする
+                } elseif (is_callable('ctype_' . $parameterType)) {
+                    $filter = 'ctype_' . $parameterType;
+                    if (call_user_func($filter, $segment)) {
+                        $parameterValue = $segment;
+                        break;
+                    }
+                }
+            }
+            return [$parameterValue, $parameterSegment];
+        }
+        return false;
+    }
 
 }
