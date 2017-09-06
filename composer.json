@@ -3,7 +3,7 @@
   "homepage": "https://github.com/k-holy/Volcanus_Routing",
   "type": "library",
   "description": "request-URI routing for page-controller scripts.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "authors": [
     {
