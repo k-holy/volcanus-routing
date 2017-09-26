@@ -2,7 +2,7 @@
 /**
  * Volcanus libraries for PHP
  *
- * @copyright 2011-2013 k-holy <k.holy74@gmail.com>
+ * @copyright k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
  */
 
@@ -14,7 +14,6 @@ use Volcanus\Routing\Exception\InvalidParameterException;
 /**
  * Parser
  *
- * @package Volcanus\Routing
  * @author k.holy74@gmail.com
  */
 class Parser
@@ -26,10 +25,15 @@ class Parser
     private $config;
 
     /**
-     * @var パース結果
+     * @var array パース結果
      */
     private $results;
 
+    /**
+     * constructor
+     *
+     * @param array $configurations 設定オプション
+     */
     public function __construct(array $configurations = array())
     {
         $this->initialize($configurations);
@@ -38,7 +42,8 @@ class Parser
     /**
      * オブジェクトを初期化します。
      *
-     * @param array 設定オプション
+     * @param array $configurations 設定オプション
+     * @return $this
      */
     public function initialize(array $configurations = array())
     {
@@ -78,11 +83,12 @@ class Parser
     /**
      * パスを解析し、ルーティングの実行を準備します。
      *
-     * @param string requestURI
-     * @return object Router
+     * @param string $path リクエストURI
+     * @return array パース結果
+     *
      * @throws \RuntimeException
-     * @throws Exception\NotFoundException
-     * @throws Exception\InvalidParameterException
+     * @throws \Volcanus\Routing\Exception\NotFoundException
+     * @throws \Volcanus\Routing\Exception\InvalidParameterException
      */
     public function parse($path)
     {
@@ -244,7 +250,7 @@ class Parser
     /**
      * パスに含まれる.および..を展開し、ルートからのセグメントの配列を返します。
      *
-     * @param string パス
+     * @param string $path パス
      * @return array セグメントの配列
      */
     private function parseRequestPath($path)
@@ -272,10 +278,10 @@ class Parser
     /**
      * ディレクトリに、指定された名前および拡張子のファイルがあれば、そのファイル名を返します。
      *
-     * @param string ディレクトリ
-     * @param string ファイル名
-     * @param array 検索する拡張子のリスト
-     * @return mixed ファイル名またはNULL
+     * @param string $dir ディレクトリ
+     * @param string $filename ファイル名
+     * @param array $extensions 検索する拡張子のリスト
+     * @return string|NULL ファイル名またはNULL
      */
     private function findFile($dir, $filename, $extensions = array())
     {
@@ -294,8 +300,8 @@ class Parser
     /**
      * セグメントからパラメータを取得して返します。
      *
-     * @param string ディレクトリ
-     * @param string セグメント
+     * @param string $dir ディレクトリ
+     * @param string $segment セグメント
      * @return array|false
      */
     private function getParameter($dir, $segment)
@@ -304,6 +310,7 @@ class Parser
         $dirs = glob($pattern, GLOB_ONLYDIR);
         if (count($dirs) >= 1) {
             $parameterValue = null;
+            $parameterSegment = null;
             foreach ($dirs as $dir) {
                 $parameterSegment = substr($dir, strrpos($dir, '/') + 1);
                 $parameterType = substr($parameterSegment, strlen($this->config['parameterLeftDelimiter']),
