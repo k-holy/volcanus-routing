@@ -43,9 +43,9 @@ class Parser
      * オブジェクトを初期化します。
      *
      * @param array $configurations 設定オプション
-     * @return $this
+     * @return self
      */
-    public function initialize(array $configurations = [])
+    public function initialize(array $configurations = []): self
     {
         $this->config = [
             'documentRoot' => null,
@@ -75,7 +75,7 @@ class Parser
      *
      * @return array パース結果の配列
      */
-    public function results()
+    public function results(): array
     {
         return $this->results;
     }
@@ -87,10 +87,10 @@ class Parser
      * @return array パース結果
      *
      * @throws \RuntimeException
-     * @throws \Volcanus\Routing\Exception\NotFoundException
-     * @throws \Volcanus\Routing\Exception\InvalidParameterException
+     * @throws NotFoundException
+     * @throws InvalidParameterException
      */
-    public function parse($path)
+    public function parse(string $path): array
     {
 
         $documentRoot = $this->config['documentRoot'];
@@ -253,7 +253,7 @@ class Parser
      * @param string $path パス
      * @return array セグメントの配列
      */
-    private function parseRequestPath($path)
+    private function parseRequestPath(string $path): array
     {
         $segments = [];
         $count = 0;
@@ -283,7 +283,7 @@ class Parser
      * @param array $extensions 検索する拡張子のリスト
      * @return string|NULL ファイル名またはNULL
      */
-    private function findFile($dir, $filename, $extensions = [])
+    private function findFile(string $dir, string $filename, array $extensions = []): ?string
     {
         if (!empty($extensions)) {
             foreach ($extensions as $extension) {
@@ -304,7 +304,7 @@ class Parser
      * @param string $segment セグメント
      * @return array|false
      */
-    private function getParameter($dir, $segment)
+    private function getParameter(string $dir, string $segment)
     {
         $pattern = $dir . '/' . sprintf('%s*%s', $this->config['parameterLeftDelimiter'], $this->config['parameterRightDelimiter']);
         $dirs = glob($pattern, GLOB_ONLYDIR);
