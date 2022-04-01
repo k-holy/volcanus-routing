@@ -8,6 +8,7 @@
 
 namespace Volcanus\Routing;
 
+use Volcanus\Routing\Exception\InvalidParameterException;
 use Volcanus\Routing\Exception\NotFoundException;
 
 /**
@@ -19,7 +20,7 @@ class Router
 {
 
     /**
-     * @var \Volcanus\Routing\Router Singletonインスタンス
+     * @var Router Singletonインスタンス
      */
     private static $instance = null;
 
@@ -34,12 +35,12 @@ class Router
     private $config;
 
     /**
-     * @var array $_SERVER環境変数
+     * @var array $_SERVER 環境変数
      */
     private $server;
 
     /**
-     * @var \Volcanus\Routing\Parser
+     * @var Parser
      */
     private $parser;
 
@@ -87,9 +88,9 @@ class Router
      * オブジェクトを初期化します。
      *
      * @param array $configurations 設定オプション
-     * @return $this
+     * @return self
      */
-    public function initialize(array $configurations = [])
+    public function initialize(array $configurations = []): self
     {
         $this->config = [
             'parameterDirectoryName' => '%VAR%',
@@ -128,9 +129,9 @@ class Router
      * Singletonインスタンスを返します。
      *
      * @param array $configurations デフォルトの設定
-     * @return \Volcanus\Routing\Router
+     * @return self
      */
-    public static function instance(array $configurations = [])
+    public static function instance(array $configurations = []): self
     {
         if (!isset(self::$instance)) {
             self::$instance = new self($configurations);
@@ -141,7 +142,7 @@ class Router
     /**
      * __clone()
      */
-    private final function __clone()
+    public final function __clone()
     {
         throw new \RuntimeException('could not clone instance.');
     }
@@ -159,7 +160,7 @@ class Router
      *
      * @throws \InvalidArgumentException
      */
-    public function config($name)
+    public function config(string $name)
     {
         if (!array_key_exists($name, $this->config)) {
             throw new \InvalidArgumentException(
@@ -218,7 +219,7 @@ class Router
      *
      * @throws \InvalidArgumentException
      */
-    public function server($name)
+    public function server(string $name)
     {
         if (!array_key_exists($name, $this->server)) {
             throw new \InvalidArgumentException(
@@ -236,7 +237,7 @@ class Router
                     }
                     switch ($name) {
                         case 'REQUEST_URI':
-                            if (!preg_match(self::$requestUriPattern, $value, $matches)) {
+                            if (!preg_match(self::$requestUriPattern, $value)) {
                                 throw new \InvalidArgumentException(
                                     sprintf('The server vars "%s" is not valid. "%s"', $name, $value));
                             }
@@ -257,9 +258,9 @@ class Router
     /**
      * $_SERVERグローバル変数から環境変数を取り込みます。
      *
-     * @return $this
+     * @return self
      */
-    public function importGlobals()
+    public function importGlobals(): self
     {
         if (isset($_SERVER)) {
             foreach ($_SERVER as $name => $value) {
@@ -276,7 +277,7 @@ class Router
      *
      * @return array パラメータの配列
      */
-    public function parameters()
+    public function parameters(): array
     {
         return $this->parameters;
     }
@@ -284,7 +285,7 @@ class Router
     /**
      * 指定されたパスパラメータの値を返します。
      *
-     * @param int $index パラメータのインデックス
+     * @param int|string $index パラメータのインデックス
      * @param mixed $defaultValue デフォルト値
      * @return mixed パラメータ値
      */
@@ -301,7 +302,7 @@ class Router
      *
      * @return string
      */
-    public function translateDirectory()
+    public function translateDirectory(): string
     {
         return $this->translateDirectory;
     }
@@ -311,7 +312,7 @@ class Router
      *
      * @return string
      */
-    public function includeFile()
+    public function includeFile(): string
     {
         return $this->includeFile;
     }
@@ -321,7 +322,7 @@ class Router
      *
      * @return string
      */
-    public function virtualUri()
+    public function virtualUri(): string
     {
         return $this->virtualUri;
     }
@@ -331,7 +332,7 @@ class Router
      *
      * @return string
      */
-    public function extension()
+    public function extension(): string
     {
         return $this->extension;
     }
@@ -339,14 +340,14 @@ class Router
     /**
      * リクエストURIを解析し、ルーティングの実行を準備します。
      *
-     * @param string $requestUri リクエストURI
-     * @return $this
+     * @param string|null $requestUri リクエストURI
+     * @return self
      *
      * @throws \RuntimeException
-     * @throws \Volcanus\Routing\Exception\NotFoundException
-     * @throws \Volcanus\Routing\Exception\InvalidParameterException
+     * @throws NotFoundException
+     * @throws InvalidParameterException
      */
-    public function prepare($requestUri = null)
+    public function prepare(?string $requestUri = null): self
     {
         if (isset($requestUri)) {
             $this->server('REQUEST_URI', $requestUri);
@@ -433,9 +434,9 @@ class Router
      * overwriteGlobalsオプションが有効な場合、$_SERVERグローバル変数を
      * serverの値で上書きします。
      *
-     * @param string $requestUri requestURI
+     * @param string|null $requestUri requestURI
      */
-    public function execute($requestUri = null)
+    public function execute(?string $requestUri = null)
     {
         if (!$this->prepared) {
             $this->prepare($requestUri);
@@ -446,14 +447,13 @@ class Router
         if (isset($this->translateDirectory)) {
             chdir($this->translateDirectory);
         }
-        /** @noinspection PhpIncludeInspection */
         include $this->includeFile;
     }
 
     /**
      * 環境変数を$_SERVERグローバル変数に上書きします。
      *
-     * @return $this
+     * @return void
      */
     private function overwriteGlobals()
     {
@@ -462,7 +462,6 @@ class Router
                 $_SERVER[$name] = $value;
             }
         }
-        return $this;
     }
 
 }
