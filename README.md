@@ -1,4 +1,4 @@
-#Volcanus_Routing
+# Volcanus_Routing
 
 [![Latest Stable Version](https://poser.pugx.org/volcanus/routing/v/stable.png)](https://packagist.org/packages/volcanus/routing)
 [![Continuous Integration](https://github.com/k-holy/volcanus-routing/actions/workflows/ci.yml/badge.svg)](https://github.com/k-holy/volcanus-routing/actions/workflows/ci.yml)
@@ -127,7 +127,7 @@ ver 0.2.0より、左右のデリミタおよび型を指定して、リクエ�
 
 標準ではパラメータのセグメントとして alpha, digit, alnum, graph といったCtype関数の各キーワードを含むディレクトリ名を利用できます。
 
-###/__gateway.php
+### /__gateway.php
 ```php
 <?php
 use Volcanus\Routing\Router;
