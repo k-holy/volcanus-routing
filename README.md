@@ -1,8 +1,7 @@
 #Volcanus_Routing
 
 [![Latest Stable Version](https://poser.pugx.org/volcanus/routing/v/stable.png)](https://packagist.org/packages/volcanus/routing)
-[![Build Status](https://travis-ci.org/k-holy/volcanus-routing.png?branch=master)](https://travis-ci.org/k-holy/volcanus-routing)
-[![Coverage Status](https://coveralls.io/repos/k-holy/volcanus-routing/badge.png?branch=master)](https://coveralls.io/r/k-holy/volcanus-routing?branch=master)
+[![Continuous Integration](https://github.com/k-holy/volcanus-routing/actions/workflows/ci.yml/badge.svg)](https://github.com/k-holy/volcanus-routing/actions/workflows/ci.yml)
 
 ページコントローラ(PageController)パターンで「きれいなURI」を実現するためのライブラリです。
 
@@ -17,23 +16,21 @@
 リクエストURIのパスに含まれるパラメータを取得する機能を提供します。
 
 
-##対応環境
+## 対応環境
 
-* PHP 5.3以降
+* PHP 7.3以降
 
 
-##依存ライブラリ
+## 依存ライブラリ
 
 なし
 
-[Volcanus_Configuration](https://github.com/k-holy/Volcanus_Configuration) への依存は ver 0.2.3 よりなくなりました。
 
-
-##簡単な使い方
+## 簡単な使い方
 
 以下は Apache + mod_rewrite での使用例です。
 
-###/.htaccess
+### /.htaccess
 ```
 RewriteEngine On
 RewriteBase /
@@ -44,7 +41,7 @@ RewriteRule ^(.*)$ __gateway.php [QSA,L]
 
 なお Apache 2.2.16以上の場合は [FallbackResource](http://httpd.apache.org/docs/trunk/en/mod/mod_dir.html#fallbackresource) ディレクティブが便利です。
 
-###/.htaccess (Apache 2.2.16以上)
+### /.htaccess (Apache 2.2.16以上)
 ```
 FallbackResource /__gateway.php
 ```
@@ -52,7 +49,7 @@ FallbackResource /__gateway.php
 存在しないディレクトリまたはファイルへのリクエストがあれば、
 以下のゲートウェイスクリプト(__gateway.php)に転送されます。
 
-###/__gateway.php
+### /__gateway.php
 ```php
 <?php
 use Volcanus\Routing\Router;
@@ -101,7 +98,7 @@ Volcanus\Routing\Exception\NotFoundException 例外がスローされますの�
 $_SERVERグローバル変数のうち PHP_SELF, SCRIPT_NAME, SCRIPT_FILENAME, PATH_INFO, PATH_TRANSLATED が、
 ルーティング結果に従って書き換えられます。
 
-###/categories/%VAR%/items/%VAR%/detail.php
+### /categories/%VAR%/items/%VAR%/detail.php
 ```php
 <?php
 use Volcanus\Routing\Router;
@@ -124,7 +121,7 @@ Router::instance()メソッドはSingletonとして実装されており、
 読み込み先のスクリプトから参照するような使い方も可能です。
 
 
-##デリミタ指定によるパラメータの型指定
+## デリミタ指定によるパラメータの型指定
 
 ver 0.2.0より、左右のデリミタおよび型を指定して、リクエストパスのパラメータを取得できるようになりました。
 
@@ -175,7 +172,7 @@ try {
 
 "/users/1" というリクエストURIのルーティングでは、該当スクリプトが読み込まれます。
 
-###/users/{%digit%}/index.php
+### /users/{%digit%}/index.php
 ```php
 <?php
 use Volcanus\Routing\Router;
@@ -184,12 +181,12 @@ $router = Router::instance();
 $$user_id = $router->parameter(0); // (string) '1'
 ```
 
-##デリミタ指定および独自フィルタによるパラメータの検証と変換
+## デリミタ指定および独自フィルタによるパラメータの検証と変換
 
 parameterFilters オプションを利用して独自のフィルタを定義し、
 Ctype関数に拠らないパラメータの検証を行ったり、パラメータの値を変換することもできます。
 
-###/__gateway.php
+### /__gateway.php
 ```php
 <?php
 use Volcanus\Routing\Router;
@@ -251,7 +248,7 @@ try {
 
 "/users/1/profiles/k-holy" というリクエストURIのルーティングでは、該当スクリプトが読み込まれます。
 
-###/users/{%digit%}/profiles/{%profile_id%}/index.php
+### /users/{%digit%}/profiles/{%profile_id%}/index.php
 ```php
 <?php
 use Volcanus\Routing\Router;
@@ -261,11 +258,11 @@ $user_id = $router->parameter(0); // (int) 1
 $profile_id = $router->parameter(1); // (string) 'k-holy'
 ```
 
-##fallbackScriptオプションを指定して、スクリプトが見つからない場合に代替スクリプトを読み込む
+## fallbackScriptオプションを指定して、スクリプトが見つからない場合に代替スクリプトを読み込む
 
 ver 0.3.0より、スクリプトが見つからない場合にドキュメントルート以下の任意のパスに設置した代替スクリプトを読み込むための fallbackScript オプションを追加しました。
 
-###/__gateway.php
+### /__gateway.php
 ```php
 <?php
 use Volcanus\Routing\Router;
@@ -305,7 +302,7 @@ try {
 
 fallbackScript オプションをファイル名で指定した場合、リクエストされたディレクトリ内にそのファイルがあれば読み込みます。
 
-###/__gateway.php
+### /__gateway.php
 ```php
 <?php
 use Volcanus\Routing\Router;
