@@ -185,7 +185,7 @@ class Router
                             }
                             break;
                         case 'overwriteGlobals':
-                            if (is_int($value) || ctype_digit($value)) {
+                            if (is_int($value) || is_string($value) && ctype_digit($value)) {
                                 $value = (bool)$value;
                             }
                             if (!is_bool($value)) {
