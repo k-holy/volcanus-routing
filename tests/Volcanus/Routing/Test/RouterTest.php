@@ -289,7 +289,7 @@ class RouterTest extends TestCase
                 return $value;
             },
             'digit' => function ($value) {
-                if (!ctype_digit($value)) {
+                if (!is_int($value) && (!is_string($value) || !ctype_digit($value))) {
                     throw new InvalidParameterException('oh...');
                 }
                 return intval($value);
