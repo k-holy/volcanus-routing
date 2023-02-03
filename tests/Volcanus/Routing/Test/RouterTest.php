@@ -1,6 +1,6 @@
 <?php
 /**
- * Volcanus libraries for PHP
+ * Volcanus libraries for PHP 8.1~
  *
  * @copyright k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
@@ -21,13 +21,13 @@ use Volcanus\Routing\Router;
 class RouterTest extends TestCase
 {
 
-    private $documentRoot = null;
-    private $tempDir = null;
+    private string $documentRoot;
+    private string $tempDir;
 
     public function setUp(): void
     {
-        $this->documentRoot = realpath(__DIR__ . '/RouterTest');
-        $this->tempDir = realpath(__DIR__ . '/RouterTest/temp');
+        $this->documentRoot = __DIR__ . DIRECTORY_SEPARATOR . 'RouterTest';
+        $this->tempDir = __DIR__ . DIRECTORY_SEPARATOR . 'RouterTest' . DIRECTORY_SEPARATOR . 'temp';
     }
 
     public function tearDown(): void

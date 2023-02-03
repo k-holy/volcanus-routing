@@ -18,8 +18,7 @@
 
 ## 対応環境
 
-* PHP 7.3以降
-
+* PHP 8.1以降
 
 ## 依存ライブラリ
 
@@ -56,11 +55,11 @@ use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
-$router = Router::instance(array(
+$router = Router::instance([
     'parameterDirectoryName' => '%VAR%', // パラメータディレクトリ名を %VAR% と設定する
     'searchExtensions'       => 'php',   // 読み込み対象スクリプトの拡張子を php と設定する
     'overwriteGlobals'       => true,    // ルーティング実行時、$_SERVERグローバル変数を上書きする
-));
+]);
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
@@ -134,12 +133,12 @@ use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
-$router = Router::instance(array(
+$router = Router::instance([
     'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
     'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
     'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
     'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
-));
+]);
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
@@ -193,10 +192,10 @@ use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
-$router = Router::instance(array(
+$router = Router::instance([
     'parameterLeftDelimiter'  => '{%', // パラメータの左デリミタは {% とする
     'parameterRightDelimiter' => '%}', // パラメータの右デリミタは %} とする
-    'parameterFilters' => array(
+    'parameterFilters' => [
         // 独自のフィルタ "profile_id" を設定する
         'profile_id' => function($value) {
             if (strspn($value, '0123456789abcdefghijklmnopqrstuvwxyz_-.') !== strlen($value)) {
@@ -211,10 +210,10 @@ $router = Router::instance(array(
             }
             return intval($value);
         },
-    ),
+    ],
     'searchExtensions' => 'php', // 読み込み対象スクリプトの拡張子を php と設定する
     'overwriteGlobals' => true,  // ルーティング実行時、$_SERVERグローバル変数を上書きする
-));
+]);
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
@@ -269,9 +268,9 @@ use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
-$router = Router::instance(array(
+$router = Router::instance([
     'fallbackScript' => '/path/to/fallback.php', // スクリプトが見つからない場合は ドキュメントルート/path/to/fallback.php を読み込む
-));
+]);
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
@@ -309,9 +308,9 @@ use Volcanus\Routing\Router;
 use Volcanus\Routing\Exception\NotFoundException;
 use Volcanus\Routing\Exception\InvalidParameterException;
 
-$router = Router::instance(array(
+$router = Router::instance([
     'fallbackScript' => 'fallback.php', // スクリプトが見つからない場合は fallback.php があれば読み込む
-));
+]);
 
 $router->importGlobals(); // $_SERVERグローバル変数から環境変数を取り込む
 
