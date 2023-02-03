@@ -1,6 +1,6 @@
 <?php
 /**
- * Volcanus libraries for PHP
+ * Volcanus libraries for PHP 8.1~
  *
  * @copyright k-holy <k.holy74@gmail.com>
  * @license The MIT License (MIT)
@@ -22,12 +22,12 @@ class Parser
     /**
      * @var array 設定値
      */
-    private $config;
+    private array $config;
 
     /**
      * @var array パース結果
      */
-    private $results;
+    private array $results;
 
     /**
      * constructor
@@ -184,7 +184,7 @@ class Parser
             }
 
             // fallbackScriptがファイル名で指定されている場合、現在のディレクトリから検索
-            if ($fallbackScript !== null && 0 !== strpos($fallbackScript, '/')) {
+            if ($fallbackScript !== null && !str_starts_with($fallbackScript, '/')) {
                 $filename = $this->findFile($documentRoot . $translateDirectory, $fallbackScript);
                 if ($filename !== null) {
                     $scriptName .= '/' . $filename;
@@ -211,7 +211,7 @@ class Parser
 
         if ($filename === null) {
             // fallbackScriptがファイル名で指定され、かつ末尾がパラメータディレクトリの場合、ひとつ前のセグメントから検索
-            if ($fallbackScript !== null && 0 !== strpos($fallbackScript, '/') && $parameterDirectoryName !== null) {
+            if ($fallbackScript !== null && !str_starts_with($fallbackScript, '/') && $parameterDirectoryName !== null) {
                 $lastSegmentIndex = strrpos($translateDirectory, '/');
                 if (substr($translateDirectory, $lastSegmentIndex + 1) === $parameterDirectoryName) {
                     $_translateDirectory = substr($translateDirectory, 0, $lastSegmentIndex);
@@ -304,7 +304,7 @@ class Parser
      * @param string $segment セグメント
      * @return array|false
      */
-    private function getParameter(string $dir, string $segment)
+    private function getParameter(string $dir, string $segment): bool|array
     {
         $pattern = $dir . '/' . sprintf('%s*%s', $this->config['parameterLeftDelimiter'], $this->config['parameterRightDelimiter']);
         $dirs = glob($pattern, GLOB_ONLYDIR);
