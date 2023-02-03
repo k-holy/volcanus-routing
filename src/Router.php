@@ -20,59 +20,59 @@ class Router
 {
 
     /**
-     * @var Router Singletonインスタンス
+     * @var Router|null Singletonインスタンス
      */
-    private static $instance = null;
+    private static ?Router $instance = null;
 
     /**
      * @var string RequestURI解析パターン
      */
-    private static $requestUriPattern = '~\A(?:[^:/?#]+:)*(?://(?:[^/?#]*))*([^?#]*)(?:\?([^#]*))?(?:#(.*))?\z~i';
+    private static string $requestUriPattern = '~\A(?:[^:/?#]+:)*(?://(?:[^/?#]*))*([^?#]*)(?:\?([^#]*))?(?:#(.*))?\z~i';
 
     /**
      * @var array 設定値
      */
-    private $config;
+    private array $config;
 
     /**
      * @var array $_SERVER 環境変数
      */
-    private $server;
+    private array $server;
 
     /**
      * @var Parser
      */
-    private $parser;
+    private Parser $parser;
 
     /**
      * @var array ディレクトリパラメータ
      */
-    private $parameters;
+    private array $parameters;
 
     /**
-     * @var string 転送先ディレクトリ
+     * @var string|null 転送先ディレクトリ
      */
-    private $translateDirectory;
+    private ?string $translateDirectory;
 
     /**
-     * @var string 読込対象ファイル
+     * @var string|null 読込対象ファイル
      */
-    private $includeFile;
+    private ?string $includeFile;
 
     /**
-     * @var string 仮想URI (読込対象ファイル + PathInfo + QueryString)
+     * @var string|null 仮想URI (読込対象ファイル + PathInfo + QueryString)
      */
-    private $virtualUri;
+    private ?string $virtualUri;
 
     /**
-     * @var string リクエストされた拡張子
+     * @var string|null リクエストされた拡張子
      */
-    private $extension;
+    private ?string $extension;
 
     /**
      * @var boolean ルーティング準備処理済みかどうか
      */
-    private $prepared;
+    private bool $prepared;
 
     /**
      * constructor
@@ -160,7 +160,7 @@ class Router
      *
      * @throws \InvalidArgumentException
      */
-    public function config(string $name)
+    public function config(string $name): mixed
     {
         if (!array_key_exists($name, $this->config)) {
             throw new \InvalidArgumentException(
@@ -219,7 +219,7 @@ class Router
      *
      * @throws \InvalidArgumentException
      */
-    public function server(string $name)
+    public function server(string $name): mixed
     {
         if (!array_key_exists($name, $this->server)) {
             throw new \InvalidArgumentException(
@@ -286,10 +286,10 @@ class Router
      * 指定されたパスパラメータの値を返します。
      *
      * @param int|string $index パラメータのインデックス
-     * @param mixed $defaultValue デフォルト値
+     * @param mixed|null $defaultValue デフォルト値
      * @return mixed パラメータ値
      */
-    public function parameter($index, $defaultValue = null)
+    public function parameter(int|string $index, mixed $defaultValue = null): mixed
     {
         if (array_key_exists($index, $this->parameters)) {
             return $this->parameters[$index];
@@ -300,9 +300,9 @@ class Router
     /**
      * 転送先ディレクトリを返します。
      *
-     * @return string
+     * @return string|null
      */
-    public function translateDirectory(): string
+    public function translateDirectory(): ?string
     {
         return $this->translateDirectory;
     }
@@ -310,9 +310,9 @@ class Router
     /**
      * 読込対象スクリプトの物理パスを返します。
      *
-     * @return string
+     * @return string|null
      */
-    public function includeFile(): string
+    public function includeFile(): ?string
     {
         return $this->includeFile;
     }
@@ -320,9 +320,9 @@ class Router
     /**
      * 仮想URI (読込対象スクリプトのドキュメントルートからのパス + PathInfo + QueryString) を返します。
      *
-     * @return string
+     * @return string|null
      */
-    public function virtualUri(): string
+    public function virtualUri(): ?string
     {
         return $this->virtualUri;
     }
@@ -330,9 +330,9 @@ class Router
     /**
      * リクエストされた拡張子を返します。
      *
-     * @return string
+     * @return string|null
      */
-    public function extension(): string
+    public function extension(): ?string
     {
         return $this->extension;
     }
@@ -435,8 +435,9 @@ class Router
      * serverの値で上書きします。
      *
      * @param string|null $requestUri requestURI
+     * @return void
      */
-    public function execute(?string $requestUri = null)
+    public function execute(?string $requestUri = null): void
     {
         if (!$this->prepared) {
             $this->prepare($requestUri);
@@ -455,7 +456,7 @@ class Router
      *
      * @return void
      */
-    private function overwriteGlobals()
+    private function overwriteGlobals(): void
     {
         if (isset($_SERVER)) {
             foreach ($this->server as $name => $value) {
